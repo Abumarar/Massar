@@ -1,0 +1,17 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "RzToHqvSJ-0XOy0cKfqp_"
+uri = "file://.local/conversation-workspace/files/Tawsileh_Architecture_Implementation_Plan.md"
+type = "text"
+title = "Tawsileh architecture and implementation plan"
+description = "A build-ready MVP architecture and phased implementation plan for Tawsileh Intercity."
+logical_id = "bb206b6b-951a-43ba-b7e4-7a0a7db7ca78"
+content_hash = "sha256:6d4305cdefbf2cf400c18d81f669e205f5d6209c9f755d5a86bdf0e2b724d118"
+size = 23232
+mtime_ms = 1788604381257
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/conversation:0f596ef2-ceed-42aa-95a1-f3f6d48c0797/bb206b6b-951a-43ba-b7e4-7a0a7db7ca78/ea7d1ba9-100b-4979-bb5f-710a602687df"
+storage_version_token = "1788604389506481"
+content_type = "text/markdown"
+source_uri = "file://Tawsileh_Architecture_Implementation_Plan.md"

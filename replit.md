@@ -1,6 +1,6 @@
-# [Project name]
+# Massar (مسار)
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Massar is a Jordanian intercity ride-sharing app that matches passengers with route-compatible captains and lets passengers reserve one or more seats.
 
 ## Run & Operate
 
@@ -22,23 +22,31 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/massar` — Expo mobile app for the passenger booking prototype
+- `artifacts/api-server` — shared Express API foundation
+- `lib/api-spec/openapi.yaml` — API contract source of truth
+- `Tawsileh_Architecture_Implementation_Plan.md` — original architecture and phased build plan
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The first mobile milestone is a local-first matching proof, using AsyncStorage while the backend contract is developed.
+- Massar supports booking 1–4 seats per request; matching must require available seats greater than or equal to requested seats.
+- Prototype fare is calculated per reserved seat and displayed as an estimated total until captain acceptance.
+- The mobile UI uses a single Expo codebase with passenger-focused tabs for Home, Trips, and Profile.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Passengers can select Jerash → Amman, choose 1–4 seats, see a route-compatible captain, review the estimated total, confirm a ride request, and view saved trips.
+- The app supports Arabic brand language and an English-first interface foundation with Massar/مسار identity.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Product name: Massar (مسار), replacing Tawsileh.
+- Passenger booking must support more than one seat.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- The current mobile milestone is a prototype with local persistence; live authentication, maps, matching API, captain acceptance, and notifications remain the next backend phases.
 
 ## Pointers
 
