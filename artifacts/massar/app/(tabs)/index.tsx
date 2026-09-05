@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
+import { calculateFare, usePricing } from '@/context/PricingContext';
 
 type BookingStage = 'home' | 'matches' | 'confirm';
 
@@ -55,12 +56,11 @@ const captain: Captain = {
   eta: '7 min',
 };
 
-const fareBySeats: Record<number, number> = { 1: 12, 2: 6, 3: 4, 4: 3 };
-
 export default function HomeScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { t, isRTL } = useLanguage();
+  const { pricing } = usePricing();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [stage, setStage] = useState<BookingStage>('home');
@@ -68,8 +68,12 @@ export default function HomeScreen() {
   const [pickupLabel, setPickupLabel] = useState('Jerash');
   const [isLocating, setIsLocating] = useState(false);
   const pickupText = pickupLabel === 'Jerash' ? t('jerash') : pickupLabel;
-  const perSeatFare = fareBySeats[seats] ?? 12;
-  const totalFare = perSeatFare * seats;
+  const fare = calculateFare(seats, pricing);
+  const perSeatFare = fare.perSeat;
+  const totalFare = fare.total;
+  const fareMeta = fare.discount > 0
+    ? `${pricing.baseFare.toFixed(2)} JOD / ${t('seat')} · ${fare.discount.toFixed(2)} JOD ${t('discount')}`
+    : `${pricing.baseFare.toFixed(2)} JOD / ${t('seat')}`;
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
 
   const selectSeats = (count: number) => {
@@ -174,7 +178,7 @@ export default function HomeScreen() {
             <View style={styles.fareBand}>
               <View>
                 <Text style={styles.fareLabel}>{t('estimatedTotal')}</Text>
-                <Text style={styles.fareNote}>{perSeatFare} JOD {t('perSeat')}</Text>
+                <Text style={styles.fareNote}>{fareMeta}</Text>
               </View>
               <Text style={styles.fareAmount}>{totalFare.toFixed(2)} JOD</Text>
             </View>
@@ -298,7 +302,7 @@ export default function HomeScreen() {
             <Text style={styles.farePreviewLabel}>{t('estimatedTotal')}</Text>
             <View style={styles.farePreviewRight}>
               <Text style={styles.farePreviewAmount}>{totalFare.toFixed(2)} JOD</Text>
-              <Text style={styles.farePreviewMeta}>{perSeatFare} JOD / {t('seat')}</Text>
+              <Text style={styles.farePreviewMeta}>{fareMeta}</Text>
             </View>
           </View>
           <Pressable accessibilityLabel={t('findRide')} onPress={() => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setStage('matches'); }} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>

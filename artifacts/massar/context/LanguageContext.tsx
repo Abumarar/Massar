@@ -62,6 +62,15 @@ type TranslationKey =
   | 'protected'
   | 'passengerMode'
   | 'intercityCare'
+  | 'riderPricing'
+  | 'riderPricingDescription'
+  | 'baseSeatPrice'
+  | 'discountThreeSeats'
+  | 'discountFourSeats'
+  | 'pricingPreview'
+  | 'discount'
+  | 'wholeCar'
+  | 'pricingRule'
   | 'languageEnglish'
   | 'languageArabic';
 
@@ -125,6 +134,15 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     protected: 'Protected',
     passengerMode: 'Passenger mode · Prototype',
     intercityCare: 'Intercity travel, shared with care.',
+    riderPricing: 'Rider pricing',
+    riderPricingDescription: 'Set the price per seat and optional bundle discounts.',
+    baseSeatPrice: 'Price per seat',
+    discountThreeSeats: '3-seat discount',
+    discountFourSeats: '4-seat discount',
+    pricingPreview: 'Fare preview',
+    discount: 'discount',
+    wholeCar: 'whole car',
+    pricingRule: 'More seats always cost more. Discounts only reduce the normal total.',
     languageEnglish: 'English',
     languageArabic: 'العربية',
   },
@@ -187,6 +205,15 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     protected: 'محمي',
     passengerMode: 'وضع الراكب · نسخة تجريبية',
     intercityCare: 'تنقّل بين المدن، بمشاركة واهتمام.',
+    riderPricing: 'تسعير السائق',
+    riderPricingDescription: 'حدّد سعر المقعد وأضف خصومات اختيارية للحجوزات الجماعية.',
+    baseSeatPrice: 'سعر المقعد',
+    discountThreeSeats: 'خصم 3 مقاعد',
+    discountFourSeats: 'خصم 4 مقاعد',
+    pricingPreview: 'معاينة الأسعار',
+    discount: 'خصم',
+    wholeCar: 'السيارة كاملة',
+    pricingRule: 'كلما زاد عدد المقاعد زادت التكلفة. الخصم يقلّل السعر العادي فقط.',
     languageEnglish: 'English',
     languageArabic: 'العربية',
   },

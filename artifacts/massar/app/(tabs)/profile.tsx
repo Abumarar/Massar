@@ -1,15 +1,17 @@
 import React from 'react';
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '@/context/LanguageContext';
+import { calculateFare, usePricing } from '@/context/PricingContext';
 
 export default function ProfileScreen() {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const { t, language, isRTL, setLanguage } = useLanguage();
+  const { pricing, updatePricing } = usePricing();
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
 
   return (
@@ -57,6 +59,55 @@ export default function ProfileScreen() {
           <SettingRow icon="shield" label={t('safetyPrivacy')} value={t('protected')} colors={colors} styles={styles} last />
         </View>
 
+        <Text style={styles.sectionLabel}>{t('riderPricing')}</Text>
+        <View style={styles.pricingCard}>
+          <View style={styles.pricingHeader}>
+            <View style={styles.pricingIcon}>
+              <Feather name="sliders" size={17} color={colors.gold} />
+            </View>
+            <View style={styles.pricingCopy}>
+              <Text style={styles.pricingTitle}>{t('riderPricing')}</Text>
+              <Text style={styles.pricingDescription}>{t('riderPricingDescription')}</Text>
+            </View>
+          </View>
+          <PriceField
+            label={t('baseSeatPrice')}
+            value={pricing.baseFare}
+            onChange={(value) => updatePricing({ baseFare: value })}
+            colors={colors}
+            styles={styles}
+          />
+          <View style={styles.pricingFieldRow}>
+            <PriceField
+              label={t('discountThreeSeats')}
+              value={pricing.discount3}
+              onChange={(value) => updatePricing({ discount3: value })}
+              colors={colors}
+              styles={styles}
+            />
+            <PriceField
+              label={t('discountFourSeats')}
+              value={pricing.discount4}
+              onChange={(value) => updatePricing({ discount4: value })}
+              colors={colors}
+              styles={styles}
+            />
+          </View>
+          <Text style={styles.previewTitle}>{t('pricingPreview')}</Text>
+          <View style={styles.previewGrid}>
+            {[1, 2, 3, 4].map((count) => {
+              const quote = calculateFare(count, pricing);
+              return (
+                <View key={count} style={styles.previewItem}>
+                  <Text style={styles.previewSeats}>{count === 4 ? t('wholeCar') : `${count} ${count === 1 ? t('seat') : t('seats')}`}</Text>
+                  <Text style={styles.previewAmount}>{quote.total.toFixed(2)} JOD</Text>
+                </View>
+              );
+            })}
+          </View>
+          <Text style={styles.pricingRule}>{t('pricingRule')}</Text>
+        </View>
+
         <View style={styles.brandCard}>
           <Image source={require('@/assets/images/icon.png')} style={styles.brandMark} />
           <View style={styles.brandCopy}>
@@ -65,6 +116,38 @@ export default function ProfileScreen() {
           </View>
         </View>
       </ScrollView>
+    </View>
+  );
+}
+
+function PriceField({
+  label,
+  value,
+  onChange,
+  colors,
+  styles,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  colors: ReturnType<typeof useColors>;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  return (
+    <View style={styles.priceField}>
+      <Text style={styles.priceLabel}>{label}</Text>
+      <View style={styles.priceInputWrap}>
+        <TextInput
+          accessibilityLabel={label}
+          keyboardType="decimal-pad"
+          onChangeText={(text) => onChange(Number(text.replace(',', '.')) || 0)}
+          style={styles.priceInput}
+          value={value === 0 ? '' : String(value)}
+          placeholder="0"
+          placeholderTextColor={colors.mutedForeground}
+        />
+        <Text style={styles.currencyLabel}>JOD</Text>
+      </View>
     </View>
   );
 }
@@ -126,4 +209,22 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
     brandCopy: { flex: 1 },
     brandTitle: { color: colors.petrol, fontSize: 14, fontWeight: '800' },
     brandText: { color: colors.mutedForeground, fontSize: 11, marginTop: 4 },
+    pricingCard: { backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 15 },
+    pricingHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
+    pricingIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.petrolDark, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+    pricingCopy: { flex: 1 },
+    pricingTitle: { color: colors.ink, fontSize: 14, fontWeight: '800' },
+    pricingDescription: { color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 3 },
+    pricingFieldRow: { flexDirection: 'row', gap: 10 },
+    priceField: { flex: 1, marginBottom: 12 },
+    priceLabel: { color: colors.mutedForeground, fontSize: 10, fontWeight: '700', marginBottom: 6 },
+    priceInputWrap: { flexDirection: 'row', alignItems: 'center', minHeight: 43, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background, paddingHorizontal: 10 },
+    priceInput: { flex: 1, color: colors.ink, fontSize: 15, fontWeight: '800', paddingVertical: 8 },
+    currencyLabel: { color: colors.mutedForeground, fontSize: 10, fontWeight: '800' },
+    previewTitle: { color: colors.ink, fontSize: 11, fontWeight: '800', marginTop: 3, marginBottom: 8 },
+    previewGrid: { flexDirection: 'row', gap: 6 },
+    previewItem: { flex: 1, backgroundColor: colors.secondary, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 4, alignItems: 'center' },
+    previewSeats: { color: colors.mutedForeground, fontSize: 9, textAlign: 'center' },
+    previewAmount: { color: colors.petrol, fontSize: 11, fontWeight: '800', marginTop: 3 },
+    pricingRule: { color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 10 },
   });

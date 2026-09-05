@@ -14,6 +14,7 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { LanguageProvider } from '@/context/LanguageContext';
+import { PricingProvider } from '@/context/PricingContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -51,7 +52,9 @@ export default function RootLayout() {
           <GestureHandlerRootView>
             <KeyboardProvider>
               <LanguageProvider>
-                <RootLayoutNav />
+                <PricingProvider>
+                  <RootLayoutNav />
+                </PricingProvider>
               </LanguageProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
