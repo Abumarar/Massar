@@ -15,24 +15,24 @@
 const colors = {
   light: {
     // Legacy aliases (kept for backward compatibility)
-    text: '#14222b',
-    tint: '#0e5665',
+    text: '#111111',
+    tint: '#111111',
 
     // Core surfaces
     background: '#f7f8f5',
-    foreground: '#14222b',
+    foreground: '#111111',
 
     // Cards / elevated surfaces
     card: '#ffffff',
-    cardForeground: '#14222b',
+    cardForeground: '#111111',
 
     // Primary action color (buttons, links, active states)
-    primary: '#0e5665',
+    primary: '#111111',
     primaryForeground: '#ffffff',
 
     // Secondary / less-emphasis interactive surfaces
     secondary: '#e8f0ee',
-    secondaryForeground: '#0e5665',
+    secondaryForeground: '#111111',
 
     // Muted / subdued elements (dividers, timestamps, placeholders)
     muted: '#eef1ee',
@@ -51,9 +51,9 @@ const colors = {
     input: '#d4dfda',
 
     // Massar brand extensions
-    ink: '#14222b',
-    petrol: '#0e5665',
-    petrolDark: '#093b47',
+    ink: '#111111',
+    petrol: '#111111',
+    petrolDark: '#111111',
     gold: '#f4c95d',
     mint: '#d9eee7',
     mintStrong: '#4e9b88',

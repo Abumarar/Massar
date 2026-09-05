@@ -5,6 +5,7 @@ import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLanguage } from '@/context/LanguageContext';
 
 type StoredTrip = {
   id: string;
@@ -21,6 +22,7 @@ export default function TripsScreen() {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
+  const { t, isRTL } = useLanguage();
   const [trips, setTrips] = useState<StoredTrip[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,8 +46,8 @@ export default function TripsScreen() {
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomInset + 100 }]} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.eyebrow}>MASSAR JOURNAL</Text>
-            <Text style={styles.title}>Your rides</Text>
+            <Text style={styles.eyebrow}>{t('journal')}</Text>
+            <Text style={styles.title}>{t('yourRides')}</Text>
           </View>
           <View style={styles.headerIcon}>
             <Feather name="bookmark" size={19} color={colors.petrol} />
@@ -61,8 +63,8 @@ export default function TripsScreen() {
             <View style={styles.emptyIcon}>
               <Feather name="map" size={24} color={colors.petrol} />
             </View>
-            <Text style={styles.emptyTitle}>Your next route starts here</Text>
-            <Text style={styles.emptyText}>Book a seat for your next Jerash to Amman trip and it will appear here.</Text>
+            <Text style={styles.emptyTitle}>{t('nextRoute')}</Text>
+            <Text style={styles.emptyText}>{t('nextRouteDescription')}</Text>
           </View>
         ) : (
           trips.map((trip) => (
@@ -85,7 +87,7 @@ export default function TripsScreen() {
                 <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
               </View>
               <View style={styles.tripFooter}>
-                <Text style={styles.footerText}>{trip.seats} {trip.seats === 1 ? 'seat' : 'seats'}</Text>
+                <Text style={styles.footerText}>{trip.seats} {trip.seats === 1 ? t('seat') : t('seats')}</Text>
                 <Text style={styles.footerFare}>{trip.fare.toFixed(2)} JOD</Text>
               </View>
             </View>

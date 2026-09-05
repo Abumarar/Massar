@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
+import { useLanguage } from '@/context/LanguageContext';
 
 type BookingStage = 'home' | 'matches' | 'confirm';
 
@@ -68,6 +69,7 @@ export default function HomeScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const [stage, setStage] = useState<BookingStage>('home');
   const [seats, setSeats] = useState<number>(1);
   const [pickupLabel, setPickupLabel] = useState('Jerash');
@@ -76,6 +78,7 @@ export default function HomeScreen() {
   const perSeatFare = fareByOccupiedSeats[seats] ?? 12;
   const totalFare = perSeatFare * seats;
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
+  const pickupText = pickupLabel === 'Jerash' ? t('jerash') : pickupLabel;
 
   const chooseSeats = (count: number) => {
     void Haptics.selectionAsync();
@@ -88,8 +91,8 @@ export default function HomeScreen() {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (permission.status !== 'granted') {
         Alert.alert(
-          'Location permission needed',
-          'Allow location access to use your current pickup point.',
+          t('locationPermissionNeeded'),
+          t('allowLocation'),
         );
         return;
       }
@@ -97,14 +100,18 @@ export default function HomeScreen() {
         accuracy: Location.Accuracy.Balanced,
       });
       setPickupLabel('Current location');
-      Alert.alert(
-        'Pickup located',
-        `Your position is ready (${current.coords.latitude.toFixed(3)}, ${current.coords.longitude.toFixed(3)}).`,
-      );
+        Alert.alert(
+          t('pickupLocated'),
+          isRTL
+            ? `موقعك جاهز (${current.coords.latitude.toFixed(3)}، ${current.coords.longitude.toFixed(3)}).`
+            : `Your position is ready (${current.coords.latitude.toFixed(3)}, ${current.coords.longitude.toFixed(3)}).`,
+        );
     } catch {
       Alert.alert(
-        'Location unavailable',
-        'We could not access your location. You can continue with Jerash as your pickup.',
+        t('locationUnavailable'),
+        isRTL
+          ? 'تعذّر الوصول إلى موقعك. يمكنك المتابعة باستخدام جرش كنقطة انطلاق.'
+          : 'We could not access your location. You can continue with Jerash as your pickup.',
       );
     } finally {
       setIsLocating(false);
@@ -116,7 +123,7 @@ export default function HomeScreen() {
       id: `trip-${Date.now()}`,
       captain: captain.name,
       vehicle: captain.vehicle,
-      route: `${pickupLabel} → Amman`,
+      route: `${pickupText} → ${t('amman')}`,
       seats,
       fare: totalFare,
       status: 'Captain requested',
@@ -128,9 +135,11 @@ export default function HomeScreen() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setStage('home');
     Alert.alert(
-      'Ride requested',
-      `Ahmad has received your request for ${seats} ${seats === 1 ? 'seat' : 'seats'}.`,
-      [{ text: 'View trip', onPress: () => router.navigate('/(tabs)/trips') }],
+      t('rideRequested'),
+      isRTL
+        ? `استلم أحمد طلبك لحجز ${seats} ${seats === 1 ? t('seat') : t('seats')}.`
+        : `Ahmad has received your request for ${seats} ${seats === 1 ? t('seat') : t('seats')}.`,
+      [{ text: t('viewTrip'), onPress: () => router.navigate('/(tabs)/trips') }],
     );
   };
 
@@ -149,21 +158,21 @@ export default function HomeScreen() {
             >
               <Feather name="arrow-left" size={21} color={colors.ink} />
             </Pressable>
-            <Text style={styles.topBarTitle}>Available rides</Text>
+            <Text style={styles.topBarTitle}>{t('availableRides')}</Text>
             <View style={styles.topBarSpacer} />
           </View>
 
           <View style={styles.routePill}>
             <View style={styles.routePillDot} />
-            <Text style={styles.routePillText}>{pickupLabel} to Amman</Text>
+            <Text style={styles.routePillText}>{pickupText} → {t('amman')}</Text>
             <Text style={styles.routePillSeats}>
-              {seats} {seats === 1 ? 'seat' : 'seats'}
+              {seats} {seats === 1 ? t('seat') : t('seats')}
             </Text>
           </View>
 
-          <Text style={styles.pageTitle}>A better way to go.</Text>
+          <Text style={styles.pageTitle}>{t('betterWayToGo')}</Text>
           <Text style={styles.pageSubtitle}>
-            We found a captain already heading your way.
+            {t('foundCaptain')}
           </Text>
 
           <Pressable
@@ -199,15 +208,15 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.metricsRow}>
-              <Metric icon="map-pin" label="Pickup" value={captain.pickupDistance} colors={colors} styles={styles} />
-              <Metric icon="clock" label="Arrives in" value={captain.eta} colors={colors} styles={styles} />
-              <Metric icon="users" label="Seats left" value={`${captain.availableSeats}`} colors={colors} styles={styles} />
+              <Metric icon="map-pin" label={t('pickup')} value={captain.pickupDistance} colors={colors} styles={styles} />
+              <Metric icon="clock" label={t('arrivesIn')} value={captain.eta} colors={colors} styles={styles} />
+              <Metric icon="users" label={t('seatsLeft')} value={`${captain.availableSeats}`} colors={colors} styles={styles} />
             </View>
 
             <View style={styles.fareBand}>
               <View>
-                <Text style={styles.fareLabel}>Estimated total</Text>
-                <Text style={styles.fareNote}>{perSeatFare} JOD per seat</Text>
+                <Text style={styles.fareLabel}>{t('estimatedTotal')}</Text>
+                <Text style={styles.fareNote}>{perSeatFare} JOD {t('perSeat')}</Text>
               </View>
               <Text style={styles.fareAmount}>{totalFare.toFixed(2)} JOD</Text>
             </View>
@@ -216,7 +225,9 @@ export default function HomeScreen() {
           <View style={styles.infoCallout}>
             <Feather name="info" size={17} color={colors.petrol} />
             <Text style={styles.infoText}>
-              You are booking {seats} {seats === 1 ? 'seat' : 'seats'}. Seats are reserved when Ahmad accepts.
+              {isRTL
+                ? `أنت تحجز ${seats} ${seats === 1 ? t('seat') : t('seats')}. يتم حجز المقاعد عند قبول أحمد.`
+                : `You are booking ${seats} ${seats === 1 ? t('seat') : t('seats')}. Seats are reserved when Ahmad accepts.`}
             </Text>
           </View>
         </ScrollView>
@@ -239,12 +250,12 @@ export default function HomeScreen() {
             >
               <Feather name="arrow-left" size={21} color={colors.ink} />
             </Pressable>
-            <Text style={styles.topBarTitle}>Confirm ride</Text>
+            <Text style={styles.topBarTitle}>{t('confirmRide')}</Text>
             <View style={styles.topBarSpacer} />
           </View>
 
-          <Text style={styles.pageTitle}>Ready when you are.</Text>
-          <Text style={styles.pageSubtitle}>Review your ride details before sending the request.</Text>
+          <Text style={styles.pageTitle}>{t('readyWhenYouAre')}</Text>
+          <Text style={styles.pageSubtitle}>{t('reviewRide')}</Text>
 
           <View style={styles.confirmCard}>
             <View style={styles.confirmRoute}>
@@ -254,28 +265,28 @@ export default function HomeScreen() {
                 <View style={styles.routeDotOutline} />
               </View>
               <View style={styles.confirmLocations}>
-                <LocationRow label="Pickup" value={pickupLabel} colors={colors} styles={styles} />
+                <LocationRow label={t('pickup')} value={pickupText} colors={colors} styles={styles} />
                 <View style={styles.locationGap} />
-                <LocationRow label="Destination" value="Amman" colors={colors} styles={styles} />
+                <LocationRow label={t('to')} value={t('amman')} colors={colors} styles={styles} destination />
               </View>
             </View>
 
             <View style={styles.confirmDivider} />
 
             <View style={styles.confirmLine}>
-              <Text style={styles.confirmLabel}>Captain</Text>
+              <Text style={styles.confirmLabel}>{t('captain')}</Text>
               <Text style={styles.confirmValue}>{captain.name}</Text>
             </View>
             <View style={styles.confirmLine}>
-              <Text style={styles.confirmLabel}>Passengers</Text>
-              <Text style={styles.confirmValue}>{seats} {seats === 1 ? 'seat' : 'seats'}</Text>
+              <Text style={styles.confirmLabel}>{t('passengers')}</Text>
+              <Text style={styles.confirmValue}>{seats} {seats === 1 ? t('seat') : t('seats')}</Text>
             </View>
             <View style={styles.confirmLine}>
-              <Text style={styles.confirmLabel}>Vehicle</Text>
+              <Text style={styles.confirmLabel}>{t('vehicle')}</Text>
               <Text style={styles.confirmValue}>{captain.vehicle}</Text>
             </View>
             <View style={styles.confirmLine}>
-              <Text style={styles.confirmLabel}>Estimated fare</Text>
+              <Text style={styles.confirmLabel}>{t('estimatedTotal')}</Text>
               <Text style={styles.confirmFare}>{totalFare.toFixed(2)} JOD</Text>
             </View>
           </View>
@@ -283,7 +294,7 @@ export default function HomeScreen() {
           <View style={styles.privacyNote}>
             <Feather name="shield" size={17} color={colors.mintStrong} />
             <Text style={styles.privacyText}>
-              Your exact location is shared only with the captain assigned to this ride.
+              {t('privacyMessage')}
             </Text>
           </View>
 
@@ -292,11 +303,11 @@ export default function HomeScreen() {
             onPress={() => void confirmBooking()}
             style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
           >
-            <Text style={styles.primaryButtonText}>Request this ride</Text>
+            <Text style={styles.primaryButtonText}>{t('requestRide')}</Text>
             <Feather name="arrow-right" size={19} color={colors.primaryForeground} />
           </Pressable>
           <Pressable onPress={() => setStage('matches')} style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Keep browsing</Text>
+            <Text style={styles.secondaryButtonText}>{t('keepBrowsing')}</Text>
           </Pressable>
         </ScrollView>
       </View>
@@ -309,7 +320,7 @@ export default function HomeScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomInset + 100 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.hero}>
+        <View style={styles.mapPanel}>
           <View style={styles.brandRow}>
             <Image source={require('@/assets/images/icon.png')} style={styles.brandIcon} />
             <View>
@@ -321,24 +332,26 @@ export default function HomeScreen() {
               <Text style={styles.liveText}>JERASH ↔ AMMAN</Text>
             </View>
           </View>
-          <Text style={styles.heroTitle}>Move together,{"\n"}pay less.</Text>
-          <Text style={styles.heroArabic}>تحرّكوا معًا، وادفعوا أقل</Text>
+          <Text style={styles.heroTitle}>
+            {isRTL ? 'تحرّكوا معًا،\nوادفعوا أقل.' : 'Move together,\npay less.'}
+          </Text>
+          <Text style={styles.heroArabic}>{isRTL ? 'اختر وجهتك وابدأ رحلتك' : 'Choose a destination and go'}</Text>
         </View>
 
         <View style={styles.bookingCard}>
           <View style={styles.cardEyebrow}>
             <Feather name="navigation" size={14} color={colors.petrol} />
-            <Text style={styles.cardEyebrowText}>PLAN YOUR RIDE</Text>
+            <Text style={styles.cardEyebrowText}>{t('planRide')}</Text>
           </View>
           <View style={styles.locationStack}>
-            <LocationRow label="From" value={pickupLabel} colors={colors} styles={styles} />
+            <LocationRow label={t('from')} value={pickupText} colors={colors} styles={styles} />
             <View style={styles.locationConnector} />
-            <LocationRow label="To" value="Amman" colors={colors} styles={styles} destination />
+            <LocationRow label={t('to')} value={t('amman')} colors={colors} styles={styles} destination />
           </View>
           <Pressable onPress={() => void useCurrentLocation()} style={styles.locationAction}>
             <Feather name={isLocating ? 'loader' : 'crosshair'} size={15} color={colors.petrol} />
             <Text style={styles.locationActionText}>
-              {isLocating ? 'Finding your location…' : 'Use current location'}
+              {isLocating ? t('findingLocation') : t('useCurrentLocation')}
             </Text>
           </Pressable>
 
@@ -346,8 +359,8 @@ export default function HomeScreen() {
 
           <View style={styles.seatHeader}>
             <View>
-              <Text style={styles.seatTitle}>How many seats?</Text>
-              <Text style={styles.seatSubtitle}>Bring everyone along.</Text>
+              <Text style={styles.seatTitle}>{t('howManySeats')}</Text>
+              <Text style={styles.seatSubtitle}>{t('bringEveryone')}</Text>
             </View>
             <View style={styles.seatIcon}>
               <Feather name="users" size={18} color={colors.petrol} />
@@ -369,17 +382,17 @@ export default function HomeScreen() {
                   {count}
                 </Text>
                 <Text style={[styles.seatWord, seats === count && styles.seatWordSelected]}>
-                  {count === 1 ? 'seat' : 'seats'}
+                  {count === 1 ? t('seat') : t('seats')}
                 </Text>
               </Pressable>
             ))}
           </View>
 
           <View style={styles.farePreview}>
-            <Text style={styles.farePreviewLabel}>Estimated total</Text>
+            <Text style={styles.farePreviewLabel}>{t('estimatedTotal')}</Text>
             <View style={styles.farePreviewRight}>
               <Text style={styles.farePreviewAmount}>{totalFare.toFixed(2)} JOD</Text>
-              <Text style={styles.farePreviewMeta}>{perSeatFare} JOD / seat</Text>
+              <Text style={styles.farePreviewMeta}>{perSeatFare} JOD / {t('seat')}</Text>
             </View>
           </View>
 
@@ -391,21 +404,21 @@ export default function HomeScreen() {
             }}
             style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
           >
-            <Text style={styles.primaryButtonText}>Find a ride</Text>
+            <Text style={styles.primaryButtonText}>{t('findRide')}</Text>
             <Feather name="arrow-right" size={19} color={colors.primaryForeground} />
           </Pressable>
         </View>
 
         <View style={styles.promiseRow}>
-          <Promise icon="map" label="Route matched" colors={colors} styles={styles} />
-          <Promise icon="shield" label="Verified captains" colors={colors} styles={styles} />
-          <Promise icon="credit-card" label="Fair pricing" colors={colors} styles={styles} />
+          <Promise icon="map" label={t('routeMatched')} colors={colors} styles={styles} />
+          <Promise icon="shield" label={t('verifiedCaptains')} colors={colors} styles={styles} />
+          <Promise icon="credit-card" label={t('fairPricing')} colors={colors} styles={styles} />
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Your recent rides</Text>
+          <Text style={styles.sectionTitle}>{t('recentRides')}</Text>
           <Pressable onPress={() => router.navigate('/(tabs)/trips')}>
-            <Text style={styles.sectionAction}>See all</Text>
+            <Text style={styles.sectionAction}>{t('seeAll')}</Text>
           </Pressable>
         </View>
         <View style={styles.recentCard}>
@@ -413,8 +426,8 @@ export default function HomeScreen() {
             <Feather name="arrow-up-right" size={18} color={colors.petrol} />
           </View>
           <View style={styles.recentCopy}>
-            <Text style={styles.recentRoute}>Jerash → Amman</Text>
-            <Text style={styles.recentMeta}>No completed rides yet</Text>
+            <Text style={styles.recentRoute}>{pickupText} → {t('amman')}</Text>
+            <Text style={styles.recentMeta}>{t('noCompletedRides')}</Text>
           </View>
           <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
         </View>
@@ -498,38 +511,43 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
   StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     scrollContent: { paddingHorizontal: 18, paddingTop: 16 },
-    hero: {
-      backgroundColor: colors.petrolDark,
-      borderRadius: 28,
+    mapPanel: {
+      backgroundColor: '#e5e5e2',
+      borderRadius: 22,
       paddingHorizontal: 22,
       paddingTop: 18,
-      paddingBottom: 24,
+      paddingBottom: 66,
       overflow: 'hidden',
+      minHeight: 238,
+      borderWidth: 1,
+      borderColor: '#d8d8d4',
     },
     brandRow: { flexDirection: 'row', alignItems: 'center' },
     brandIcon: { width: 38, height: 38, borderRadius: 12, marginRight: 10 },
-    brandName: { color: '#ffffff', fontSize: 18, fontWeight: '700', letterSpacing: 0.4 },
-    brandArabic: { color: colors.gold, fontSize: 11, fontWeight: '600', marginTop: -1 },
+    brandName: { color: colors.ink, fontSize: 18, fontWeight: '700', letterSpacing: 0.4 },
+    brandArabic: { color: colors.petrol, fontSize: 11, fontWeight: '600', marginTop: -1 },
     liveBadge: {
       marginLeft: 'auto',
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: 'rgba(255,255,255,0.12)',
+      backgroundColor: '#ffffff',
       paddingHorizontal: 9,
       paddingVertical: 6,
       borderRadius: 20,
     },
     liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.gold, marginRight: 6 },
-    liveText: { color: '#d8ece6', fontSize: 8, fontWeight: '700', letterSpacing: 0.5 },
-    heroTitle: { color: '#ffffff', fontSize: 35, lineHeight: 38, fontWeight: '700', marginTop: 28, letterSpacing: -1 },
-    heroArabic: { color: '#b8d9d0', fontSize: 14, marginTop: 9, fontWeight: '500' },
+    liveText: { color: colors.ink, fontSize: 8, fontWeight: '700', letterSpacing: 0.5 },
+    heroTitle: { color: colors.ink, fontSize: 35, lineHeight: 38, fontWeight: '700', marginTop: 56, letterSpacing: -1 },
+    heroArabic: { color: colors.mutedForeground, fontSize: 14, marginTop: 9, fontWeight: '500' },
     bookingCard: {
       backgroundColor: colors.card,
-      marginTop: 14,
+      marginTop: -30,
       borderRadius: 24,
       padding: 18,
       borderWidth: 1,
       borderColor: colors.border,
+      zIndex: 2,
+      elevation: 4,
     },
     cardEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 18 },
     cardEyebrowText: { color: colors.petrol, fontSize: 10, fontWeight: '700', letterSpacing: 1.1 },
