@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -58,12 +58,10 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.brandCard}>
-          <View style={styles.brandMark}>
-            <Feather name="navigation" size={20} color={colors.gold} />
-          </View>
+          <Image source={require('@/assets/images/icon.png')} style={styles.brandMark} />
           <View style={styles.brandCopy}>
             <Text style={styles.brandTitle}>Massar, مسار</Text>
-            <Text style={styles.brandText}>{t('intercityCare')}</Text>
+            <Text style={styles.brandText}>{t('tagline')}</Text>
           </View>
         </View>
       </ScrollView>
@@ -109,7 +107,7 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
     avatarText: { color: colors.petrolDark, fontSize: 17, fontWeight: '800' },
     profileCopy: { flex: 1 },
     name: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
-    phone: { color: '#b8d9d0', fontSize: 11, marginTop: 5 },
+    phone: { color: '#cbd4e3', fontSize: 11, marginTop: 5 },
     sectionLabel: { color: colors.mutedForeground, fontSize: 11, fontWeight: '700', marginTop: 28, marginBottom: 10, letterSpacing: 0.3 },
     settingsCard: { backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14 },
     settingRow: { flexDirection: 'row', alignItems: 'center', minHeight: 61 },
@@ -124,7 +122,7 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
     languageOptionText: { color: colors.mutedForeground, fontSize: 10, fontWeight: '800' },
     languageOptionTextActive: { color: colors.primaryForeground },
     brandCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 20, backgroundColor: colors.secondary, marginTop: 18 },
-    brandMark: { width: 40, height: 40, borderRadius: 14, backgroundColor: colors.petrol, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+    brandMark: { width: 40, height: 40, borderRadius: 14, marginRight: 12 },
     brandCopy: { flex: 1 },
     brandTitle: { color: colors.petrol, fontSize: 14, fontWeight: '800' },
     brandText: { color: colors.mutedForeground, fontSize: 11, marginTop: 4 },

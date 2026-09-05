@@ -38,6 +38,7 @@ Massar is a Jordanian intercity ride-sharing app that matches passengers with ro
 
 - Passengers can select Jerash → Amman, choose 1–4 seats, see a route-compatible captain, review the estimated total, confirm a ride request, and view saved trips.
 - The app supports Arabic brand language and an English-first interface foundation with Massar/مسار identity.
+- The adopted brand system uses the supplied Massar logo with deep navy, white, and road-orange accents. The primary slogan is “Your trip starts from here” / “توصلها بثقة”.
 
 ## User preferences
 

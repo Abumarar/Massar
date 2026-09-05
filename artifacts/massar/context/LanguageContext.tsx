@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 export type Language = 'en' | 'ar';
 
 type TranslationKey =
+  | 'tagline'
   | 'home'
   | 'trips'
   | 'profile'
@@ -66,6 +67,7 @@ type TranslationKey =
 
 const translations: Record<Language, Record<TranslationKey, string>> = {
   en: {
+    tagline: 'Your trip starts from here',
     home: 'Home',
     trips: 'Trips',
     profile: 'Profile',
@@ -127,6 +129,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     languageArabic: 'العربية',
   },
   ar: {
+    tagline: 'توصلها بثقة',
     home: 'الرئيسية',
     trips: 'رحلاتي',
     profile: 'حسابي',
