@@ -1,5 +1,5 @@
 kind = "mobile"
-previewPath = "/massar/"
+previewPath = "/"
 title = "Massar (مسار)"
 description = "A mobile intercity ride-sharing prototype for Jordan that matches passengers with route-compatible captains and lets passengers book one or more seats."
 version = "1.0.0"
@@ -9,7 +9,7 @@ router = "expo-domain"
 [[services]]
 name = "expo"
 ensurePreviewReachable = "/status"
-paths = [ "/massar/" ]
+paths = [ "/" ]
 localPort = 19610
 
 [services.development]
@@ -21,4 +21,4 @@ run = [ "pnpm", "--filter", "@workspace/massar", "run", "serve" ]
 
 [services.env]
 PORT = "19610"
-BASE_PATH = "/massar/"
+BASE_PATH = "/"
