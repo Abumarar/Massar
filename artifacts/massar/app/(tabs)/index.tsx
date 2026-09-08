@@ -245,7 +245,7 @@ export default function HomeScreen() {
         <View style={styles.mapPanel}>
           {Platform.OS !== 'web' ? (
             <MapView
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
               initialRegion={{
                 latitude: 32.2801,
                 longitude: 35.8986,
@@ -263,7 +263,7 @@ export default function HomeScreen() {
               <View style={[styles.mapRoad, styles.mapRoadThree]} />
             </>
           )}
-          <View pointerEvents="box-none" style={StyleSheet.absoluteFillObject}>
+          <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
             <View style={{ padding: 18 }}>
               <View style={styles.mapTopBar}>
                 <View style={styles.brandRow}>
