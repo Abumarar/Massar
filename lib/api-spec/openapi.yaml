@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: operations
+    description: Massar operations and compliance
+  - name: drivers
+    description: Driver onboarding and document review
 paths:
   /healthz:
     get:
@@ -24,7 +28,186 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /operations/summary:
+    get:
+      operationId: getOperationsSummary
+      tags: [operations]
+      summary: Get operations dashboard summary
+      responses:
+        "200":
+          description: Current operational counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationsSummary"
+  /operations/activity:
+    get:
+      operationId: listOperationsActivity
+      tags: [operations]
+      summary: List recent operations activity
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OperationsActivity"
+  /rides/operations:
+    get:
+      operationId: listOperationsRides
+      tags: [operations]
+      summary: List rides for the operations console
+      responses:
+        "200":
+          description: Recent and active rides
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OperationsRide"
+  /compliance-requirements:
+    get:
+      operationId: listComplianceRequirements
+      tags: [operations]
+      summary: List the configurable driver compliance checklist
+      responses:
+        "200":
+          description: Requirements used during driver review
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ComplianceRequirement"
+  /drivers:
+    get:
+      operationId: listDrivers
+      tags: [drivers]
+      summary: List driver applications
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, in_review, approved, rejected, suspended]
+      responses:
+        "200":
+          description: Driver applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Driver"
+    post:
+      operationId: createDriverApplication
+      tags: [drivers]
+      summary: Submit a driver application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DriverApplicationInput"
+      responses:
+        "201":
+          description: Submitted driver application
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Driver"
+  /drivers/{driverId}:
+    get:
+      operationId: getDriver
+      tags: [drivers]
+      summary: Get driver application details
+      parameters:
+        - $ref: "#/components/parameters/DriverId"
+      responses:
+        "200":
+          description: Driver application with documents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DriverDetail"
+        "404":
+          description: Driver not found
+    patch:
+      operationId: updateDriverStatus
+      tags: [drivers]
+      summary: Update driver review status
+      parameters:
+        - $ref: "#/components/parameters/DriverId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DriverStatusUpdate"
+      responses:
+        "200":
+          description: Updated driver
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Driver"
+  /drivers/{driverId}/documents/{documentId}:
+    patch:
+      operationId: reviewDriverDocument
+      tags: [drivers]
+      summary: Review one driver document
+      parameters:
+        - $ref: "#/components/parameters/DriverId"
+        - $ref: "#/components/parameters/DocumentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentReviewUpdate"
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DriverDocument"
+  /driver-applications:
+    post:
+      operationId: createDriverApplicationWithDocuments
+      tags: [drivers]
+      summary: Submit a driver application with document metadata
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DriverApplicationWithDocumentsInput"
+      responses:
+        "201":
+          description: Submitted application
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DriverDetail"
 components:
+  parameters:
+    DriverId:
+      name: driverId
+      in: path
+      required: true
+      schema:
+        type: string
+    DocumentId:
+      name: documentId
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +216,224 @@ components:
           type: string
       required:
         - status
+    DriverStatus:
+      type: string
+      enum: [pending, in_review, approved, rejected, suspended]
+    DocumentStatus:
+      type: string
+      enum: [pending, approved, rejected]
+    DocumentType:
+      type: string
+      enum:
+        - driver_license
+        - national_id
+        - vehicle_registration
+        - compulsory_insurance
+        - vehicle_inspection
+        - ltrc_permit
+        - additional_passenger_insurance
+    ComplianceRequirement:
+      type: object
+      required: [type, title, description, required, sourceLabel]
+      properties:
+        type:
+          $ref: "#/components/schemas/DocumentType"
+        title:
+          type: string
+        description:
+          type: string
+        required:
+          type: boolean
+        sourceLabel:
+          type: string
+    DriverDocument:
+      type: object
+      required: [id, driverId, type, fileName, status, submittedAt]
+      properties:
+        id:
+          type: string
+        driverId:
+          type: string
+        type:
+          $ref: "#/components/schemas/DocumentType"
+        fileName:
+          type: string
+        fileUri:
+          type: ["string", "null"]
+        status:
+          $ref: "#/components/schemas/DocumentStatus"
+        expiresAt:
+          type: ["string", "null"]
+        submittedAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: ["string", "null"]
+          format: date-time
+        reviewNote:
+          type: ["string", "null"]
+    DriverVehicle:
+      type: object
+      required: [makeModel, color, plate, seats]
+      properties:
+        makeModel:
+          type: string
+        color:
+          type: string
+        plate:
+          type: string
+        seats:
+          type: number
+          minimum: 1
+          maximum: 8
+    Driver:
+      type: object
+      required: [id, fullName, phone, nationalIdLast4, route, status, vehicle, submittedAt, documentCount, approvedDocumentCount]
+      properties:
+        id:
+          type: string
+        fullName:
+          type: string
+        phone:
+          type: string
+        nationalIdLast4:
+          type: string
+        route:
+          type: string
+        status:
+          $ref: "#/components/schemas/DriverStatus"
+        vehicle:
+          $ref: "#/components/schemas/DriverVehicle"
+        submittedAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: ["string", "null"]
+          format: date-time
+        reviewNote:
+          type: ["string", "null"]
+        documentCount:
+          type: number
+        approvedDocumentCount:
+          type: number
+    DriverDetail:
+      allOf:
+        - $ref: "#/components/schemas/Driver"
+        - type: object
+          required: [documents]
+          properties:
+            documents:
+              type: array
+              items:
+                $ref: "#/components/schemas/DriverDocument"
+    DriverApplicationInput:
+      type: object
+      required: [fullName, phone, nationalIdLast4, route, vehicle]
+      properties:
+        fullName:
+          type: string
+          minLength: 2
+        phone:
+          type: string
+          minLength: 7
+        nationalIdLast4:
+          type: string
+          minLength: 4
+          maxLength: 4
+        route:
+          type: string
+        vehicle:
+          $ref: "#/components/schemas/DriverVehicle"
+    DriverDocumentInput:
+      type: object
+      required: [type, fileName]
+      properties:
+        type:
+          $ref: "#/components/schemas/DocumentType"
+        fileName:
+          type: string
+        fileUri:
+          type: ["string", "null"]
+        expiresAt:
+          type: ["string", "null"]
+    DriverApplicationWithDocumentsInput:
+      allOf:
+        - $ref: "#/components/schemas/DriverApplicationInput"
+        - type: object
+          required: [documents]
+          properties:
+            documents:
+              type: array
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/DriverDocumentInput"
+    DriverStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: "#/components/schemas/DriverStatus"
+        reviewNote:
+          type: ["string", "null"]
+    DocumentReviewUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: "#/components/schemas/DocumentStatus"
+        reviewNote:
+          type: ["string", "null"]
+    OperationsSummary:
+      type: object
+      required: [pendingApplications, inReview, approvedDrivers, activeRides, documentsExpiringSoon, openIssues]
+      properties:
+        pendingApplications:
+          type: number
+        inReview:
+          type: number
+        approvedDrivers:
+          type: number
+        activeRides:
+          type: number
+        documentsExpiringSoon:
+          type: number
+        openIssues:
+          type: number
+    OperationsActivity:
+      type: object
+      required: [id, actor, action, subject, createdAt]
+      properties:
+        id:
+          type: string
+        actor:
+          type: string
+        action:
+          type: string
+        subject:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    OperationsRide:
+      type: object
+      required: [id, route, departureAt, driverName, passengerCount, status, fareJod]
+      properties:
+        id:
+          type: string
+        route:
+          type: string
+        departureAt:
+          type: string
+          format: date-time
+        driverName:
+          type: string
+        passengerCount:
+          type: number
+        status:
+          type: string
+          enum: [scheduled, boarding, en_route, completed, issue]
+        fareJod:
+          type: number
+        issue:
+          type: ["string", "null"]
 

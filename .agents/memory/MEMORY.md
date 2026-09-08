@@ -1,0 +1,1 @@
+- [Driver document security](driver-document-security.md) — Driver compliance is a review workflow; attachments need private persistent storage and authenticated access before real onboarding.

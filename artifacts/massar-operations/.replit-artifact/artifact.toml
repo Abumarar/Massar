@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/operations/"
+title = "Massar Operations"
+description = "An operations console for Massar to review Jordanian driver and vehicle onboarding documents, manage driver approvals, monitor intercity rides, and handle operational exceptions."
+version = "1.0.0"
+id = "artifacts/massar-operations"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/operations/" ]
+localPort = 24634
+
+[services.development]
+run = "pnpm --filter @workspace/massar-operations run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/massar-operations", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/massar-operations/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24634"
+BASE_PATH = "/operations/"

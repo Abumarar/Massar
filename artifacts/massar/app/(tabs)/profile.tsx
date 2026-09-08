@@ -5,6 +5,7 @@ import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '@/context/LanguageContext';
 import { calculateFare, usePricing } from '@/context/PricingContext';
+import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -12,6 +13,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { t, language, isRTL, setLanguage } = useLanguage();
   const { pricing, updatePricing } = usePricing();
+  const router = useRouter();
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
 
   return (
@@ -30,6 +32,17 @@ export default function ProfileScreen() {
           </View>
           <Feather name="edit-2" size={17} color={colors.mutedForeground} />
         </View>
+
+        <Pressable onPress={() => router.push('/driver')} style={({ pressed }) => [styles.driverCard, pressed && { opacity: 0.82 }]}>
+          <View style={styles.driverIcon}>
+            <Feather name="truck" size={18} color={colors.gold} />
+          </View>
+          <View style={styles.driverCopy}>
+            <Text style={styles.driverTitle}>{isRTL ? 'انضم إلى مسار كسائق' : 'Drive with Massar'}</Text>
+            <Text style={styles.driverDescription}>{isRTL ? 'قدّم بياناتك ووثائق مركبتك للمراجعة.' : 'Submit your details and vehicle documents for review.'}</Text>
+          </View>
+          <Feather name="arrow-up-right" size={18} color={colors.gold} />
+        </Pressable>
 
         <Text style={styles.sectionLabel}>{t('preferences')}</Text>
         <View style={styles.settingsCard}>
@@ -191,6 +204,11 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
     profileCopy: { flex: 1 },
     name: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
     phone: { color: '#cbd4e3', fontSize: 11, marginTop: 5 },
+    driverCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.petrol, borderRadius: 20, padding: 15, marginTop: 14 },
+    driverIcon: { width: 38, height: 38, borderRadius: 13, backgroundColor: '#2a354b', alignItems: 'center', justifyContent: 'center', marginRight: 11 },
+    driverCopy: { flex: 1 },
+    driverTitle: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
+    driverDescription: { color: '#cbd4e3', fontSize: 11, lineHeight: 16, marginTop: 3, paddingRight: 8 },
     sectionLabel: { color: colors.mutedForeground, fontSize: 11, fontWeight: '700', marginTop: 28, marginBottom: 10, letterSpacing: 0.3 },
     settingsCard: { backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14 },
     settingRow: { flexDirection: 'row', alignItems: 'center', minHeight: 61 },
