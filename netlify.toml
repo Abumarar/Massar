@@ -1,0 +1,4 @@
+[build]
+  base = "/"
+  command = "pnpm --filter @workspace/massar-operations... run build"
+  publish = "artifacts/massar-operations/dist/public"
