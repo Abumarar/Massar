@@ -9,11 +9,13 @@ module.exports = {
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
+      "bundleIdentifier": "com.massar.driver",
       "config": {
         "googleMapsApiKey": process.env.GOOGLE_MAPS_IOS_API_KEY
       }
     },
     "android": {
+      "package": "com.massar.driver",
       "config": {
         "googleMaps": {
           "apiKey": process.env.GOOGLE_MAPS_ANDROID_API_KEY
