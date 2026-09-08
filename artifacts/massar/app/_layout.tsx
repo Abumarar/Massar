@@ -16,10 +16,14 @@ import * as SplashScreen from 'expo-splash-screen';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { PricingProvider } from '@/context/PricingContext';
 import { setBaseUrl } from '@workspace/api-client-react';
+import { I18nManager } from 'react-native';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 setBaseUrl(process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : null);
+
+I18nManager.allowRTL(true);
+I18nManager.forceRTL(true);
 
 const queryClient = new QueryClient();
 

@@ -12,6 +12,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { Feather } from '@expo/vector-icons';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -242,28 +243,46 @@ export default function HomeScreen() {
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomInset + 100 }]} showsVerticalScrollIndicator={false}>
         <View style={styles.mapPanel}>
-          <View style={[styles.mapRoad, styles.mapRoadOne]} />
-          <View style={[styles.mapRoad, styles.mapRoadTwo]} />
-          <View style={[styles.mapRoad, styles.mapRoadThree]} />
-          <View style={styles.mapTopBar}>
-            <View style={styles.brandRow}>
-              <Image source={require('@/assets/images/icon.png')} style={styles.brandIcon} />
-              <View>
-                <Text style={styles.brandName}>Masar</Text>
-                <Text style={styles.brandArabic}>مسار</Text>
+          {Platform.OS !== 'web' ? (
+            <MapView
+              style={StyleSheet.absoluteFillObject}
+              initialRegion={{
+                latitude: 32.2801,
+                longitude: 35.8986,
+                latitudeDelta: 0.1,
+                longitudeDelta: 0.1,
+              }}
+            >
+              <Marker coordinate={{ latitude: 32.2801, longitude: 35.8986 }} />
+              <Marker coordinate={{ latitude: 31.9454, longitude: 35.9284 }} />
+            </MapView>
+          ) : (
+            <>
+              <View style={[styles.mapRoad, styles.mapRoadOne]} />
+              <View style={[styles.mapRoad, styles.mapRoadTwo]} />
+              <View style={[styles.mapRoad, styles.mapRoadThree]} />
+            </>
+          )}
+          <View pointerEvents="box-none" style={StyleSheet.absoluteFillObject}>
+            <View style={{ padding: 18 }}>
+              <View style={styles.mapTopBar}>
+                <View style={styles.brandRow}>
+                  <Image source={require('@/assets/images/icon.png')} style={styles.brandIcon} />
+                  <View>
+                    <Text style={styles.brandName}>Masar</Text>
+                    <Text style={styles.brandArabic}>مسار</Text>
+                  </View>
+                </View>
+                <Pressable accessibilityLabel={t('profile')} onPress={() => router.navigate('/(tabs)/profile')} style={styles.mapProfileButton}>
+                  <Feather name="user" size={17} color={colors.ink} />
+                </Pressable>
+              </View>
+              <View style={styles.mapRouteBadge}>
+                <View style={styles.liveDot} />
+                <Text style={styles.mapRouteText}>{pickupText} ↔ {t('amman')}</Text>
               </View>
             </View>
-            <Pressable accessibilityLabel={t('profile')} onPress={() => router.navigate('/(tabs)/profile')} style={styles.mapProfileButton}>
-              <Feather name="user" size={17} color={colors.ink} />
-            </Pressable>
           </View>
-          <View style={styles.mapRouteBadge}>
-            <View style={styles.liveDot} />
-            <Text style={styles.mapRouteText}>{pickupText} ↔ {t('amman')}</Text>
-          </View>
-          <View style={styles.mapRouteLine} />
-          <View style={[styles.mapMarker, styles.mapMarkerStart]}><View style={styles.mapMarkerCore} /></View>
-          <View style={[styles.mapMarker, styles.mapMarkerEnd]}><Feather name="map-pin" size={13} color={colors.primaryForeground} /></View>
           <Text style={styles.heroTitle}>{t('tagline')}</Text>
           <Text style={styles.heroArabic}>{isRTL ? 'Your trip starts from here' : 'توصلها بثقة'}</Text>
         </View>

@@ -1,4 +1,4 @@
-{
+module.exports = {
   "expo": {
     "name": "Massar (مسار)",
     "slug": "massar",
@@ -8,9 +8,18 @@
     "scheme": "massar",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "config": {
+        "googleMapsApiKey": process.env.GOOGLE_MAPS_IOS_API_KEY
+      }
     },
-    "android": {},
+    "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": process.env.GOOGLE_MAPS_ANDROID_API_KEY
+        }
+      }
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
@@ -20,4 +29,4 @@
       "reactCompiler": true
     }
   }
-}
+};
