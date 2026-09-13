@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface AcceptRideInput {
-  driverId: string;
+export interface BookingInput {
+  passengerId: string;
+  seatsBooked: number;
 }

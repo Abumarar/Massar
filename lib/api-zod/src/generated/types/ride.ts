@@ -9,12 +9,14 @@ import type { RideStatus } from './rideStatus';
 
 export interface Ride {
   id: string;
-  passengerId: string;
-  /** @nullable */
-  driverId?: string | null;
+  driverId: string;
   route: string;
-  seats: number;
-  fare: number;
+  totalSeats: number;
+  availableSeats: number;
+  farePerSeat: number;
   status: RideStatus;
+  /** @nullable */
+  departureTime?: Date | null;
   createdAt: Date;
+  updatedAt?: Date;
 }

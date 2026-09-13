@@ -57,12 +57,24 @@ export const operationsActivityTable = pgTable("massar_operations_activity", {
 
 export const ridesTable = pgTable("massar_rides", {
   id: text("id").primaryKey(),
-  passengerId: text("passenger_id").notNull(),
-  driverId: text("driver_id").references(() => driversTable.id),
+  driverId: text("driver_id").notNull().references(() => driversTable.id),
   route: text("route").notNull(),
-  seats: integer("seats").notNull(),
-  fare: real("fare").notNull(),
-  status: text("status").notNull().default("pending"), // pending, accepted, completed, cancelled
+  totalSeats: integer("total_seats").notNull(),
+  availableSeats: integer("available_seats").notNull(),
+  farePerSeat: real("fare_per_seat").notNull(),
+  status: text("status").notNull().default("open"), // open, full, completed, cancelled
+  departureTime: timestamp("departure_time", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
+
+export const bookingsTable = pgTable("massar_bookings", {
+  id: text("id").primaryKey(),
+  rideId: text("ride_id").notNull().references(() => ridesTable.id),
+  passengerId: text("passenger_id").notNull(),
+  seatsBooked: integer("seats_booked").notNull(),
+  totalFare: real("total_fare").notNull(),
+  status: text("status").notNull().default("confirmed"), // confirmed, cancelled
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
@@ -90,6 +102,10 @@ export const insertRideSchema = createInsertSchema(ridesTable).omit({
   createdAt: true,
   updatedAt: true,
 });
+export const insertBookingSchema = createInsertSchema(bookingsTable).omit({
+  createdAt: true,
+  updatedAt: true,
+});
 export const insertActiveDriverSchema = createInsertSchema(activeDriversTable).omit({
   updatedAt: true,
 });
@@ -100,4 +116,5 @@ export type DriverDocument = typeof driverDocumentsTable.$inferSelect;
 export type OperationsRide = typeof operationsRidesTable.$inferSelect;
 export type OperationsActivity = typeof operationsActivityTable.$inferSelect;
 export type Ride = typeof ridesTable.$inferSelect;
+export type Booking = typeof bookingsTable.$inferSelect;
 export type ActiveDriver = typeof activeDriversTable.$inferSelect;

@@ -10,8 +10,8 @@ export type ListRidesStatus = typeof ListRidesStatus[keyof typeof ListRidesStatu
 
 
 export const ListRidesStatus = {
-  pending: 'pending',
-  accepted: 'accepted',
+  open: 'open',
+  full: 'full',
   completed: 'completed',
   cancelled: 'cancelled',
 } as const;

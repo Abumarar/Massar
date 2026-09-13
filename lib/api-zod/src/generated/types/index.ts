@@ -6,7 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export * from './acceptRideInput';
+export * from './booking';
+export * from './bookingInput';
+export * from './bookingStatus';
 export * from './complianceRequirement';
 export * from './documentReviewUpdate';
 export * from './documentStatus';

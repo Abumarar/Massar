@@ -158,49 +158,55 @@ export const CreateDriverApplicationResponse = zod.object({
 
 
 /**
- * @summary Customer requests a new ride
- */
-export const CreateRideBody = zod.object({
-  "passengerId": zod.string(),
-  "route": zod.string(),
-  "seats": zod.number(),
-  "fare": zod.number()
-})
-
-export const CreateRideResponse = zod.object({
-  "id": zod.string(),
-  "passengerId": zod.string(),
-  "driverId": zod.string().nullish(),
-  "route": zod.string(),
-  "seats": zod.number(),
-  "fare": zod.number(),
-  "status": zod.enum(['pending', 'accepted', 'completed', 'cancelled']),
-  "createdAt": zod.coerce.date()
-})
-
-
-/**
- * @summary Driver views available or active rides
+ * @summary Passenger views available rides
  */
 export const ListRidesQueryParams = zod.object({
-  "status": zod.enum(['pending', 'accepted', 'completed', 'cancelled']).optional()
+  "status": zod.enum(['open', 'full', 'completed', 'cancelled']).optional(),
+  "driverId": zod.coerce.string().optional()
 })
 
 export const ListRidesResponseItem = zod.object({
   "id": zod.string(),
-  "passengerId": zod.string(),
-  "driverId": zod.string().nullish(),
+  "driverId": zod.string(),
   "route": zod.string(),
-  "seats": zod.number(),
-  "fare": zod.number(),
-  "status": zod.enum(['pending', 'accepted', 'completed', 'cancelled']),
-  "createdAt": zod.coerce.date()
+  "totalSeats": zod.number(),
+  "availableSeats": zod.number(),
+  "farePerSeat": zod.number(),
+  "status": zod.enum(['open', 'full', 'completed', 'cancelled']),
+  "departureTime": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date().optional()
 })
 export const ListRidesResponse = zod.array(ListRidesResponseItem)
 
 
 /**
- * @summary Get ride details
+ * @summary Driver creates a ride
+ */
+export const CreateRideBody = zod.object({
+  "driverId": zod.string(),
+  "route": zod.string(),
+  "totalSeats": zod.number(),
+  "farePerSeat": zod.number(),
+  "departureTime": zod.coerce.date().optional()
+})
+
+export const CreateRideResponse = zod.object({
+  "id": zod.string(),
+  "driverId": zod.string(),
+  "route": zod.string(),
+  "totalSeats": zod.number(),
+  "availableSeats": zod.number(),
+  "farePerSeat": zod.number(),
+  "status": zod.enum(['open', 'full', 'completed', 'cancelled']),
+  "departureTime": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Get details of a specific ride
  */
 export const GetRideParams = zod.object({
   "rideId": zod.coerce.string()
@@ -208,36 +214,39 @@ export const GetRideParams = zod.object({
 
 export const GetRideResponse = zod.object({
   "id": zod.string(),
-  "passengerId": zod.string(),
-  "driverId": zod.string().nullish(),
+  "driverId": zod.string(),
   "route": zod.string(),
-  "seats": zod.number(),
-  "fare": zod.number(),
-  "status": zod.enum(['pending', 'accepted', 'completed', 'cancelled']),
-  "createdAt": zod.coerce.date()
+  "totalSeats": zod.number(),
+  "availableSeats": zod.number(),
+  "farePerSeat": zod.number(),
+  "status": zod.enum(['open', 'full', 'completed', 'cancelled']),
+  "departureTime": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date().optional()
 })
 
 
 /**
- * @summary Driver accepts a ride
+ * @summary Passenger books a ride
  */
-export const AcceptRideParams = zod.object({
+export const BookRideParams = zod.object({
   "rideId": zod.coerce.string()
 })
 
-export const AcceptRideBody = zod.object({
-  "driverId": zod.string()
+export const BookRideBody = zod.object({
+  "passengerId": zod.string(),
+  "seatsBooked": zod.number()
 })
 
-export const AcceptRideResponse = zod.object({
+export const BookRideResponse = zod.object({
   "id": zod.string(),
+  "rideId": zod.string(),
   "passengerId": zod.string(),
-  "driverId": zod.string().nullish(),
-  "route": zod.string(),
-  "seats": zod.number(),
-  "fare": zod.number(),
-  "status": zod.enum(['pending', 'accepted', 'completed', 'cancelled']),
-  "createdAt": zod.coerce.date()
+  "seatsBooked": zod.number(),
+  "totalFare": zod.number(),
+  "status": zod.enum(['confirmed', 'cancelled']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date().optional()
 })
 
 

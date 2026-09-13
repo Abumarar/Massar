@@ -7,8 +7,9 @@
  */
 
 export interface RideInput {
-  passengerId: string;
+  driverId: string;
   route: string;
-  seats: number;
-  fare: number;
+  totalSeats: number;
+  farePerSeat: number;
+  departureTime?: Date;
 }

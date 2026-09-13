@@ -18,22 +18,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
-import { calculateFare, usePricing } from '@/context/PricingContext';
-import { useCreateRide } from '@workspace/api-client-react';
+import { useListRides, useBookRide, Ride } from '@workspace/api-client-react';
 
 type BookingStage = 'home' | 'matches' | 'confirm' | 'waiting';
-
-type Captain = {
-  name: string;
-  initials: string;
-  rating: number;
-  trips: number;
-  vehicle: string;
-  plate: string;
-  availableSeats: number;
-  pickupDistance: string;
-  eta: string;
-};
 
 type StoredTrip = {
   id: string;
@@ -44,18 +31,6 @@ type StoredTrip = {
   fare: number;
   status: string;
   createdAt: string;
-};
-
-const captain: Captain = {
-  name: 'Ahmad Al-Khatib',
-  initials: 'AK',
-  rating: 4.9,
-  trips: 248,
-  vehicle: 'Toyota Corolla · White',
-  plate: '32-4821',
-  availableSeats: 4,
-  pickupDistance: '1.2 km',
-  eta: '7 min',
 };
 
 // Generate or get passenger ID
@@ -72,28 +47,24 @@ export default function HomeScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { t, isRTL } = useLanguage();
-  const { pricing } = usePricing();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  
   const [stage, setStage] = useState<BookingStage>('home');
   const [seats, setSeats] = useState(1);
   const [pickupLabel, setPickupLabel] = useState('Jerash');
   const [isLocating, setIsLocating] = useState(false);
   const [passengerId, setPassengerId] = useState<string | null>(null);
-  
-  const createRideMutation = useCreateRide();
+  const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
   
   useEffect(() => {
     getPassengerId().then(setPassengerId);
   }, []);
 
+  const { data: rides, isLoading } = useListRides({ status: 'open' }, { query: { enabled: stage === 'matches' || stage === 'home' } as any });
+  const bookRideMutation = useBookRide();
+
   const pickupText = pickupLabel === 'Jerash' ? t('jerash') : pickupLabel;
-  const fare = calculateFare(seats, pricing);
-  const perSeatFare = fare.perSeat;
-  const totalFare = fare.total;
-  const fareMeta = fare.discount > 0
-    ? `${pricing.baseFare.toFixed(2)} JOD / ${t('seat')} · ${fare.discount.toFixed(2)} JOD ${t('discount')}`
-    : `${pricing.baseFare.toFixed(2)} JOD / ${t('seat')}`;
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
 
   const selectSeats = (count: number) => {
@@ -132,41 +103,44 @@ export default function HomeScreen() {
   };
 
   const confirmBooking = async () => {
-    if (!passengerId) return;
+    if (!passengerId || !selectedRide) return;
     try {
-      const ride = await createRideMutation.mutateAsync({
+      const booking = await bookRideMutation.mutateAsync({
+        rideId: selectedRide.id,
         data: {
           passengerId,
-          route: `${pickupText} → ${t('amman')}`,
-          seats,
-          fare: totalFare,
+          seatsBooked: seats,
         }
       });
       
       const trip: StoredTrip = {
-        id: ride.id,
-        captain: captain.name,
-        vehicle: captain.vehicle,
-        route: ride.route,
-        seats: ride.seats,
-        fare: ride.fare,
-        status: isRTL ? 'بانتظار قبول السائق' : 'Captain requested',
-        createdAt: ride.createdAt,
+        id: booking.id,
+        captain: `Driver ${selectedRide.driverId.slice(-4)}`,
+        vehicle: 'Car', // placeholder
+        route: selectedRide.route,
+        seats: seats,
+        fare: booking.totalFare,
+        status: isRTL ? 'مؤكد' : 'Confirmed',
+        createdAt: booking.createdAt,
       };
+      
       const saved = await AsyncStorage.getItem('@massar/trips');
       const existing: StoredTrip[] = saved ? JSON.parse(saved) : [];
       await AsyncStorage.setItem('@massar/trips', JSON.stringify([trip, ...existing]));
+      
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setStage('home');
+      setSelectedRide(null);
+      
       Alert.alert(
         t('rideRequested'),
         isRTL
-          ? `استلم أحمد طلبك لحجز ${seats} ${seats === 1 ? t('seat') : t('seats')}.`
-          : `Ahmad has received your request for ${seats} ${seats === 1 ? t('seat') : t('seats')}.`,
+          ? `تم تأكيد حجز ${seats} ${seats === 1 ? t('seat') : t('seats')}.`
+          : `Your booking for ${seats} ${seats === 1 ? t('seat') : t('seats')} is confirmed!`,
         [{ text: t('viewTrip'), onPress: () => router.navigate('/(tabs)/trips') }],
       );
     } catch (e) {
-      Alert.alert('Error', 'Could not request ride');
+      Alert.alert('Error', 'Could not book ride');
     }
   };
 
@@ -183,46 +157,50 @@ export default function HomeScreen() {
           <Text style={styles.pageTitle}>{t('betterWayToGo')}</Text>
           <Text style={styles.pageSubtitle}>{t('foundCaptain')}</Text>
 
-          <Pressable onPress={() => setStage('confirm')} style={({ pressed }) => [styles.captainCard, pressed && styles.pressed]}>
-            <View style={styles.captainHeader}>
-              <View style={styles.avatar}><Text style={styles.avatarText}>{captain.initials}</Text></View>
-              <View style={styles.captainNameBlock}>
-                <Text style={styles.captainName}>{captain.name}</Text>
-                <View style={styles.ratingLine}>
-                  <Feather name="star" size={14} color={colors.gold} />
-                  <Text style={styles.ratingText}>{captain.rating}</Text>
-                  <Text style={styles.tripCount}>· {captain.trips} trips</Text>
+          {isLoading && <Text style={{ color: colors.mutedForeground, marginTop: 20 }}>Loading rides...</Text>}
+          {!isLoading && rides?.length === 0 && <Text style={{ color: colors.mutedForeground, marginTop: 20 }}>No rides available at the moment.</Text>}
+          
+          {rides?.filter(r => r.availableSeats >= seats).map(ride => (
+            <Pressable 
+              key={ride.id} 
+              onPress={() => {
+                setSelectedRide(ride);
+                setStage('confirm');
+              }} 
+              style={({ pressed }) => [styles.captainCard, pressed && styles.pressed, { marginBottom: 16 }]}
+            >
+              <View style={styles.captainHeader}>
+                <View style={styles.avatar}><Text style={styles.avatarText}>{ride.driverId.slice(-2).toUpperCase()}</Text></View>
+                <View style={styles.captainNameBlock}>
+                  <Text style={styles.captainName}>Driver {ride.driverId.slice(-4)}</Text>
+                  <View style={styles.ratingLine}>
+                    <Feather name="star" size={14} color={colors.gold} />
+                    <Text style={styles.ratingText}>4.9</Text>
+                  </View>
                 </View>
+                <Feather name="chevron-right" size={19} color={colors.mutedForeground} />
               </View>
-              <Feather name="chevron-right" size={19} color={colors.mutedForeground} />
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.vehicleRow}>
-              <View style={styles.vehicleIcon}><Feather name="truck" size={17} color={colors.petrol} /></View>
-              <View>
-                <Text style={styles.vehicleTitle}>{captain.vehicle}</Text>
-                <Text style={styles.vehicleMeta}>{t('plate')} {captain.plate}</Text>
+              <View style={styles.divider} />
+              <View style={styles.metricsRow}>
+                <Metric icon="clock" label={t('arrivesIn')} value="N/A" colors={colors} styles={styles} />
+                <Metric icon="users" label={t('seatsLeft')} value={`${ride.availableSeats}`} colors={colors} styles={styles} />
               </View>
-            </View>
-            <View style={styles.metricsRow}>
-              <Metric icon="map-pin" label={t('pickup')} value={captain.pickupDistance} colors={colors} styles={styles} />
-              <Metric icon="clock" label={t('arrivesIn')} value={captain.eta} colors={colors} styles={styles} />
-              <Metric icon="users" label={t('seatsLeft')} value={`${captain.availableSeats}`} colors={colors} styles={styles} />
-            </View>
-            <View style={styles.fareBand}>
-              <View>
-                <Text style={styles.fareLabel}>{t('estimatedTotal')}</Text>
-                <Text style={styles.fareNote}>{fareMeta}</Text>
+              <View style={styles.fareBand}>
+                <View>
+                  <Text style={styles.fareLabel}>{t('estimatedTotal')}</Text>
+                  <Text style={styles.fareNote}>{ride.farePerSeat} JOD / {t('seat')}</Text>
+                </View>
+                <Text style={styles.fareAmount}>{(ride.farePerSeat * seats).toFixed(2)} JOD</Text>
               </View>
-              <Text style={styles.fareAmount}>{totalFare.toFixed(2)} JOD</Text>
-            </View>
-          </Pressable>
+            </Pressable>
+          ))}
+          
           <View style={styles.infoCallout}>
             <Feather name="info" size={17} color={colors.petrol} />
             <Text style={styles.infoText}>
               {isRTL
-                ? `أنت تحجز ${seats} ${seats === 1 ? t('seat') : t('seats')}. يتم حجز المقاعد عند قبول أحمد.`
-                : `You are booking ${seats} ${seats === 1 ? t('seat') : t('seats')}. Seats are reserved when Ahmad accepts.`}
+                ? `أنت تحجز ${seats} ${seats === 1 ? t('seat') : t('seats')}. سيتم حسم المقاعد فور التأكيد.`
+                : `You are booking ${seats} ${seats === 1 ? t('seat') : t('seats')}. Seats are reserved instantly.`}
             </Text>
           </View>
         </ScrollView>
@@ -230,11 +208,12 @@ export default function HomeScreen() {
     );
   }
 
-  if (stage === 'confirm') {
+  if (stage === 'confirm' && selectedRide) {
+    const totalFare = selectedRide.farePerSeat * seats;
     return (
       <View style={styles.screen}>
         <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomInset + 100 }]} showsVerticalScrollIndicator={false}>
-          <TopBar title={t('confirmRide')} onBack={() => setStage('matches')} colors={colors} styles={styles} />
+          <TopBar title={t('confirmRide')} onBack={() => { setStage('matches'); setSelectedRide(null); }} colors={colors} styles={styles} />
           <Text style={styles.pageTitle}>{t('readyWhenYouAre')}</Text>
           <Text style={styles.pageSubtitle}>{t('reviewRide')}</Text>
           <View style={styles.confirmCard}>
@@ -251,9 +230,8 @@ export default function HomeScreen() {
               </View>
             </View>
             <View style={styles.divider} />
-            <SummaryLine label={t('captain')} value={captain.name} styles={styles} />
+            <SummaryLine label={t('captain')} value={`Driver ${selectedRide.driverId.slice(-4)}`} styles={styles} />
             <SummaryLine label={t('passengers')} value={`${seats} ${seats === 1 ? t('seat') : t('seats')}`} styles={styles} />
-            <SummaryLine label={t('vehicle')} value={captain.vehicle} styles={styles} />
             <SummaryLine label={t('estimatedTotal')} value={`${totalFare.toFixed(2)} JOD`} styles={styles} emphasis />
           </View>
           <View style={styles.privacyNote}>
@@ -264,7 +242,7 @@ export default function HomeScreen() {
             <Text style={styles.primaryButtonText}>{t('requestRide')}</Text>
             <Feather name="arrow-right" size={19} color={colors.primaryForeground} />
           </Pressable>
-          <Pressable onPress={() => setStage('matches')} style={styles.secondaryButton}>
+          <Pressable onPress={() => { setStage('matches'); setSelectedRide(null); }} style={styles.secondaryButton}>
             <Text style={styles.secondaryButtonText}>{t('keepBrowsing')}</Text>
           </Pressable>
         </ScrollView>
@@ -349,13 +327,6 @@ export default function HomeScreen() {
                 <Text style={[styles.seatWord, seats === count && styles.seatWordSelected]}>{count === 1 ? t('seat') : t('seats')}</Text>
               </Pressable>
             ))}
-          </View>
-          <View style={styles.farePreview}>
-            <Text style={styles.farePreviewLabel}>{t('estimatedTotal')}</Text>
-            <View style={styles.farePreviewRight}>
-              <Text style={styles.farePreviewAmount}>{totalFare.toFixed(2)} JOD</Text>
-              <Text style={styles.farePreviewMeta}>{fareMeta}</Text>
-            </View>
           </View>
           <Pressable accessibilityLabel={t('findRide')} onPress={() => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setStage('matches'); }} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
             <Text style={styles.primaryButtonText}>{t('findRide')}</Text>
@@ -466,11 +437,6 @@ const createStyles = (colors: ReturnType<typeof useColors>) => StyleSheet.create
   seatNumberSelected: { color: colors.primaryForeground },
   seatWord: { color: colors.mutedForeground, fontSize: 9, marginTop: 1, fontWeight: '600' },
   seatWordSelected: { color: '#ffffff' },
-  farePreview: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: 12, borderRadius: 13, backgroundColor: colors.secondary },
-  farePreviewLabel: { color: colors.secondaryForeground, fontSize: 12, fontWeight: '700' },
-  farePreviewRight: { alignItems: 'flex-end' },
-  farePreviewAmount: { color: colors.petrol, fontSize: 16, fontWeight: '800' },
-  farePreviewMeta: { color: colors.mutedForeground, fontSize: 10, marginTop: 2 },
   primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 54, borderRadius: 15, backgroundColor: colors.primary, marginTop: 16 },
   primaryButtonText: { color: colors.primaryForeground, fontSize: 15, fontWeight: '800' },
   secondaryButton: { alignItems: 'center', paddingVertical: 15 },
@@ -506,10 +472,6 @@ const createStyles = (colors: ReturnType<typeof useColors>) => StyleSheet.create
   ratingLine: { flexDirection: 'row', alignItems: 'center', marginTop: 5, gap: 5 },
   ratingText: { color: colors.ink, fontSize: 11, fontWeight: '800' },
   tripCount: { color: colors.mutedForeground, fontSize: 11 },
-  vehicleRow: { flexDirection: 'row', alignItems: 'center' },
-  vehicleIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  vehicleTitle: { color: colors.ink, fontSize: 12, fontWeight: '700' },
-  vehicleMeta: { color: colors.mutedForeground, fontSize: 10, marginTop: 3 },
   metricsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 17, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border },
   metric: { alignItems: 'center', minWidth: 76 },
   metricLabel: { color: colors.mutedForeground, fontSize: 9, marginTop: 5 },

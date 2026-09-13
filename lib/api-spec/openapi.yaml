@@ -121,10 +121,35 @@ paths:
               schema:
                 $ref: "#/components/schemas/Driver"
   /rides:
+    get:
+      summary: Passenger views available rides
+      operationId: listRides
+      tags: [rides]
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [open, full, completed, cancelled]
+        - name: driverId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: A list of rides
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Ride"
     post:
+      summary: Driver creates a ride
       operationId: createRide
       tags: [rides]
-      summary: Customer requests a new ride
       requestBody:
         required: true
         content:
@@ -133,36 +158,16 @@ paths:
               $ref: "#/components/schemas/RideInput"
       responses:
         "201":
-          description: Created ride request
+          description: Ride created successfully
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Ride"
-    get:
-      operationId: listRides
-      tags: [rides]
-      summary: Driver views available or active rides
-      parameters:
-        - name: status
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [pending, accepted, completed, cancelled]
-      responses:
-        "200":
-          description: List of rides
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Ride"
   /rides/{rideId}:
     get:
+      summary: Get details of a specific ride
       operationId: getRide
       tags: [rides]
-      summary: Get ride details
       parameters:
         - $ref: "#/components/parameters/RideId"
       responses:
@@ -174,11 +179,11 @@ paths:
                 $ref: "#/components/schemas/Ride"
         "404":
           description: Ride not found
-  /rides/{rideId}/accept:
-    patch:
-      operationId: acceptRide
+  /rides/{rideId}/book:
+    post:
+      summary: Passenger books a ride
+      operationId: bookRide
       tags: [rides]
-      summary: Driver accepts a ride
       parameters:
         - $ref: "#/components/parameters/RideId"
       requestBody:
@@ -186,16 +191,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AcceptRideInput"
+              $ref: "#/components/schemas/BookingInput"
       responses:
-        "200":
-          description: Accepted ride
+        "201":
+          description: Booking successful
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Ride"
+                $ref: "#/components/schemas/Booking"
         "400":
-          description: Ride no longer available
+          description: Ride no longer available or not enough seats
   /drivers/{driverId}:
     get:
       operationId: getDriver
@@ -300,46 +305,82 @@ components:
         - status
     RideStatus:
       type: string
-      enum: [pending, accepted, completed, cancelled]
+      enum: [open, full, completed, cancelled]
     Ride:
       type: object
-      required: [id, passengerId, route, seats, fare, status, createdAt]
+      required: [id, driverId, route, totalSeats, availableSeats, farePerSeat, status, createdAt]
       properties:
         id:
           type: string
-        passengerId:
-          type: string
         driverId:
-          type: ["string", "null"]
+          type: string
         route:
           type: string
-        seats:
+        totalSeats:
           type: number
-        fare:
+        availableSeats:
+          type: number
+        farePerSeat:
           type: number
         status:
           $ref: "#/components/schemas/RideStatus"
+        departureTime:
+          type: ["string", "null"]
+          format: date-time
         createdAt:
+          type: string
+          format: date-time
+        updatedAt:
           type: string
           format: date-time
     RideInput:
       type: object
-      required: [passengerId, route, seats, fare]
-      properties:
-        passengerId:
-          type: string
-        route:
-          type: string
-        seats:
-          type: number
-        fare:
-          type: number
-    AcceptRideInput:
-      type: object
-      required: [driverId]
+      required: [driverId, route, totalSeats, farePerSeat]
       properties:
         driverId:
           type: string
+        route:
+          type: string
+        totalSeats:
+          type: number
+        farePerSeat:
+          type: number
+        departureTime:
+          type: string
+          format: date-time
+    BookingStatus:
+      type: string
+      enum: [confirmed, cancelled]
+    Booking:
+      type: object
+      required: [id, rideId, passengerId, seatsBooked, totalFare, status, createdAt]
+      properties:
+        id:
+          type: string
+        rideId:
+          type: string
+        passengerId:
+          type: string
+        seatsBooked:
+          type: number
+        totalFare:
+          type: number
+        status:
+          $ref: "#/components/schemas/BookingStatus"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    BookingInput:
+      type: object
+      required: [passengerId, seatsBooked]
+      properties:
+        passengerId:
+          type: string
+        seatsBooked:
+          type: number
     DriverStatus:
       type: string
       enum: [pending, in_review, approved, rejected, suspended]

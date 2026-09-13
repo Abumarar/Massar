@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
-import { db, ridesTable, activeDriversTable } from "@workspace/db";
-import { CreateRideBody, GetRideParams, ListRidesQueryParams, AcceptRideParams, AcceptRideBody } from "@workspace/api-zod";
+import { db, ridesTable, bookingsTable } from "@workspace/db";
+import { CreateRideBody, GetRideParams, ListRidesQueryParams, BookRideParams, BookRideBody } from "@workspace/api-zod";
 import { addActivity } from "../lib/operations";
 
 const router: IRouter = Router();
@@ -15,19 +15,19 @@ router.post("/rides", async (req, res): Promise<void> => {
   }
   const input = parsed.data;
   const id = `ride-${randomUUID()}`;
-  const createdAt = new Date();
   
   await db.insert(ridesTable).values({
     id,
-    passengerId: input.passengerId,
+    driverId: input.driverId,
     route: input.route,
-    seats: input.seats,
-    fare: input.fare,
-    status: "pending",
-    createdAt,
+    totalSeats: input.totalSeats,
+    availableSeats: input.totalSeats,
+    farePerSeat: input.farePerSeat,
+    status: "open",
+    departureTime: input.departureTime ? new Date(input.departureTime) : null,
   });
   
-  await addActivity("Passenger", "requested a ride on route", input.route);
+  await addActivity("Driver", "created a new ride on route", input.route);
   
   const [ride] = await db.select().from(ridesTable).where(eq(ridesTable.id, id));
   res.status(201).json(ride);
@@ -42,8 +42,16 @@ router.get("/rides", async (req, res): Promise<void> => {
   
   let dbQuery = db.select().from(ridesTable);
   
+  const conditions = [];
   if (query.data.status) {
-    dbQuery = dbQuery.where(eq(ridesTable.status, query.data.status)) as any;
+    conditions.push(eq(ridesTable.status, query.data.status as string));
+  }
+  if (query.data.driverId) {
+    conditions.push(eq(ridesTable.driverId, query.data.driverId));
+  }
+  
+  if (conditions.length > 0) {
+    dbQuery = dbQuery.where(and(...conditions)) as any;
   }
   
   const rides = await dbQuery.orderBy(desc(ridesTable.createdAt));
@@ -66,9 +74,9 @@ router.get("/rides/:rideId", async (req, res): Promise<void> => {
   res.json(ride);
 });
 
-router.patch("/rides/:rideId/accept", async (req, res): Promise<void> => {
-  const params = AcceptRideParams.safeParse(req.params);
-  const body = AcceptRideBody.safeParse(req.body);
+router.post("/rides/:rideId/book", async (req, res): Promise<void> => {
+  const params = BookRideParams.safeParse(req.params);
+  const body = BookRideBody.safeParse(req.body);
   
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -79,23 +87,48 @@ router.patch("/rides/:rideId/accept", async (req, res): Promise<void> => {
     return;
   }
   
-  // Update the ride status
-  const [updated] = await db.update(ridesTable).set({
-    status: "accepted",
-    driverId: body.data.driverId,
-    updatedAt: new Date(),
-  })
-  .where(eq(ridesTable.id, params.data.rideId))
-  .returning();
-  
-  if (!updated) {
+  const rideId = params.data.rideId;
+  const { passengerId, seatsBooked } = body.data;
+
+  // Retrieve the ride first to check availability
+  const [ride] = await db.select().from(ridesTable).where(eq(ridesTable.id, rideId));
+  if (!ride) {
     res.status(404).json({ error: "Ride not found" });
     return;
   }
   
-  await addActivity("Driver", `accepted ride`, updated.id);
+  if (ride.status !== "open" || ride.availableSeats < seatsBooked) {
+    res.status(400).json({ error: "Ride no longer available or not enough seats" });
+    return;
+  }
   
-  res.json(updated);
+  // Calculate total fare
+  const totalFare = ride.farePerSeat * seatsBooked;
+  const newAvailableSeats = ride.availableSeats - seatsBooked;
+  const newStatus = newAvailableSeats === 0 ? "full" : "open";
+  
+  // Create booking
+  const bookingId = `book-${randomUUID()}`;
+  await db.insert(bookingsTable).values({
+    id: bookingId,
+    rideId,
+    passengerId,
+    seatsBooked,
+    totalFare,
+    status: "confirmed",
+  });
+  
+  // Update ride available seats
+  await db.update(ridesTable).set({
+    availableSeats: newAvailableSeats,
+    status: newStatus,
+    updatedAt: new Date(),
+  }).where(eq(ridesTable.id, rideId));
+  
+  await addActivity("Passenger", `booked ${seatsBooked} seats on ride`, rideId);
+  
+  const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, bookingId));
+  res.status(201).json(booking);
 });
 
 export default router;

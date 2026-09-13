@@ -9,4 +9,5 @@ import type { ListRidesStatus } from './listRidesStatus';
 
 export type ListRidesParams = {
 status?: ListRidesStatus;
+driverId?: string;
 };

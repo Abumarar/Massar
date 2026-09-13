@@ -13,33 +13,56 @@ export type RideStatus = typeof RideStatus[keyof typeof RideStatus];
 
 
 export const RideStatus = {
-  pending: 'pending',
-  accepted: 'accepted',
+  open: 'open',
+  full: 'full',
   completed: 'completed',
   cancelled: 'cancelled',
 } as const;
 
 export interface Ride {
   id: string;
-  passengerId: string;
-  /** @nullable */
-  driverId?: string | null;
+  driverId: string;
   route: string;
-  seats: number;
-  fare: number;
+  totalSeats: number;
+  availableSeats: number;
+  farePerSeat: number;
   status: RideStatus;
+  /** @nullable */
+  departureTime?: string | null;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface RideInput {
-  passengerId: string;
+  driverId: string;
   route: string;
-  seats: number;
-  fare: number;
+  totalSeats: number;
+  farePerSeat: number;
+  departureTime?: string;
 }
 
-export interface AcceptRideInput {
-  driverId: string;
+export type BookingStatus = typeof BookingStatus[keyof typeof BookingStatus];
+
+
+export const BookingStatus = {
+  confirmed: 'confirmed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface Booking {
+  id: string;
+  rideId: string;
+  passengerId: string;
+  seatsBooked: number;
+  totalFare: number;
+  status: BookingStatus;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface BookingInput {
+  passengerId: string;
+  seatsBooked: number;
 }
 
 export type DriverStatus = typeof DriverStatus[keyof typeof DriverStatus];
@@ -229,14 +252,15 @@ export const ListDriversStatus = {
 
 export type ListRidesParams = {
 status?: ListRidesStatus;
+driverId?: string;
 };
 
 export type ListRidesStatus = typeof ListRidesStatus[keyof typeof ListRidesStatus];
 
 
 export const ListRidesStatus = {
-  pending: 'pending',
-  accepted: 'accepted',
+  open: 'open',
+  full: 'full',
   completed: 'completed',
   cancelled: 'cancelled',
 } as const;
