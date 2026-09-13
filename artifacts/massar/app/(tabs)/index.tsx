@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Alert,
   Image,
@@ -12,15 +12,16 @@ import {
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { Feather } from '@expo/vector-icons';
-import MapView, { Marker, Polyline } from 'react-native-maps';
+import { Map, Marker } from '@/components/Map';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
 import { calculateFare, usePricing } from '@/context/PricingContext';
+import { useCreateRide } from '@workspace/api-client-react';
 
-type BookingStage = 'home' | 'matches' | 'confirm';
+type BookingStage = 'home' | 'matches' | 'confirm' | 'waiting';
 
 type Captain = {
   name: string;
@@ -57,6 +58,16 @@ const captain: Captain = {
   eta: '7 min',
 };
 
+// Generate or get passenger ID
+const getPassengerId = async () => {
+  let id = await AsyncStorage.getItem('@massar/passengerId');
+  if (!id) {
+    id = `pass-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    await AsyncStorage.setItem('@massar/passengerId', id);
+  }
+  return id;
+};
+
 export default function HomeScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -68,6 +79,14 @@ export default function HomeScreen() {
   const [seats, setSeats] = useState(1);
   const [pickupLabel, setPickupLabel] = useState('Jerash');
   const [isLocating, setIsLocating] = useState(false);
+  const [passengerId, setPassengerId] = useState<string | null>(null);
+  
+  const createRideMutation = useCreateRide();
+  
+  useEffect(() => {
+    getPassengerId().then(setPassengerId);
+  }, []);
+
   const pickupText = pickupLabel === 'Jerash' ? t('jerash') : pickupLabel;
   const fare = calculateFare(seats, pricing);
   const perSeatFare = fare.perSeat;
@@ -113,28 +132,42 @@ export default function HomeScreen() {
   };
 
   const confirmBooking = async () => {
-    const trip: StoredTrip = {
-      id: `trip-${Date.now()}`,
-      captain: captain.name,
-      vehicle: captain.vehicle,
-      route: `${pickupText} → ${t('amman')}`,
-      seats,
-      fare: totalFare,
-      status: isRTL ? 'بانتظار قبول السائق' : 'Captain requested',
-      createdAt: new Date().toISOString(),
-    };
-    const saved = await AsyncStorage.getItem('@massar/trips');
-    const existing: StoredTrip[] = saved ? JSON.parse(saved) : [];
-    await AsyncStorage.setItem('@massar/trips', JSON.stringify([trip, ...existing]));
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setStage('home');
-    Alert.alert(
-      t('rideRequested'),
-      isRTL
-        ? `استلم أحمد طلبك لحجز ${seats} ${seats === 1 ? t('seat') : t('seats')}.`
-        : `Ahmad has received your request for ${seats} ${seats === 1 ? t('seat') : t('seats')}.`,
-      [{ text: t('viewTrip'), onPress: () => router.navigate('/(tabs)/trips') }],
-    );
+    if (!passengerId) return;
+    try {
+      const ride = await createRideMutation.mutateAsync({
+        data: {
+          passengerId,
+          route: `${pickupText} → ${t('amman')}`,
+          seats,
+          fare: totalFare,
+        }
+      });
+      
+      const trip: StoredTrip = {
+        id: ride.id,
+        captain: captain.name,
+        vehicle: captain.vehicle,
+        route: ride.route,
+        seats: ride.seats,
+        fare: ride.fare,
+        status: isRTL ? 'بانتظار قبول السائق' : 'Captain requested',
+        createdAt: ride.createdAt,
+      };
+      const saved = await AsyncStorage.getItem('@massar/trips');
+      const existing: StoredTrip[] = saved ? JSON.parse(saved) : [];
+      await AsyncStorage.setItem('@massar/trips', JSON.stringify([trip, ...existing]));
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setStage('home');
+      Alert.alert(
+        t('rideRequested'),
+        isRTL
+          ? `استلم أحمد طلبك لحجز ${seats} ${seats === 1 ? t('seat') : t('seats')}.`
+          : `Ahmad has received your request for ${seats} ${seats === 1 ? t('seat') : t('seats')}.`,
+        [{ text: t('viewTrip'), onPress: () => router.navigate('/(tabs)/trips') }],
+      );
+    } catch (e) {
+      Alert.alert('Error', 'Could not request ride');
+    }
   };
 
   if (stage === 'matches') {
@@ -244,7 +277,7 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomInset + 100 }]} showsVerticalScrollIndicator={false}>
         <View style={styles.mapPanel}>
           {Platform.OS !== 'web' ? (
-            <MapView
+            <Map
               style={StyleSheet.absoluteFill}
               initialRegion={{
                 latitude: 32.2801,
@@ -255,7 +288,7 @@ export default function HomeScreen() {
             >
               <Marker coordinate={{ latitude: 32.2801, longitude: 35.8986 }} />
               <Marker coordinate={{ latitude: 31.9454, longitude: 35.9284 }} />
-            </MapView>
+            </Map>
           ) : (
             <>
               <View style={[styles.mapRoad, styles.mapRoadOne]} />

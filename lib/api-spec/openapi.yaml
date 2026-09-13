@@ -120,6 +120,82 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Driver"
+  /rides:
+    post:
+      operationId: createRide
+      tags: [rides]
+      summary: Customer requests a new ride
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RideInput"
+      responses:
+        "201":
+          description: Created ride request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ride"
+    get:
+      operationId: listRides
+      tags: [rides]
+      summary: Driver views available or active rides
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, accepted, completed, cancelled]
+      responses:
+        "200":
+          description: List of rides
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Ride"
+  /rides/{rideId}:
+    get:
+      operationId: getRide
+      tags: [rides]
+      summary: Get ride details
+      parameters:
+        - $ref: "#/components/parameters/RideId"
+      responses:
+        "200":
+          description: Ride details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ride"
+        "404":
+          description: Ride not found
+  /rides/{rideId}/accept:
+    patch:
+      operationId: acceptRide
+      tags: [rides]
+      summary: Driver accepts a ride
+      parameters:
+        - $ref: "#/components/parameters/RideId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AcceptRideInput"
+      responses:
+        "200":
+          description: Accepted ride
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ride"
+        "400":
+          description: Ride no longer available
   /drivers/{driverId}:
     get:
       operationId: getDriver
@@ -208,6 +284,12 @@ components:
       required: true
       schema:
         type: string
+    RideId:
+      name: rideId
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
     HealthStatus:
       type: object
@@ -216,6 +298,48 @@ components:
           type: string
       required:
         - status
+    RideStatus:
+      type: string
+      enum: [pending, accepted, completed, cancelled]
+    Ride:
+      type: object
+      required: [id, passengerId, route, seats, fare, status, createdAt]
+      properties:
+        id:
+          type: string
+        passengerId:
+          type: string
+        driverId:
+          type: ["string", "null"]
+        route:
+          type: string
+        seats:
+          type: number
+        fare:
+          type: number
+        status:
+          $ref: "#/components/schemas/RideStatus"
+        createdAt:
+          type: string
+          format: date-time
+    RideInput:
+      type: object
+      required: [passengerId, route, seats, fare]
+      properties:
+        passengerId:
+          type: string
+        route:
+          type: string
+        seats:
+          type: number
+        fare:
+          type: number
+    AcceptRideInput:
+      type: object
+      required: [driverId]
+      properties:
+        driverId:
+          type: string
     DriverStatus:
       type: string
       enum: [pending, in_review, approved, rejected, suspended]

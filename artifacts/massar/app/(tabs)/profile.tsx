@@ -44,6 +44,17 @@ export default function ProfileScreen() {
           <Feather name="arrow-up-right" size={18} color={colors.gold} />
         </Pressable>
 
+        <Pressable onPress={() => router.push('/driver-dashboard')} style={({ pressed }) => [styles.driverCard, { marginTop: 10, backgroundColor: colors.secondary }, pressed && { opacity: 0.82 }]}>
+          <View style={[styles.driverIcon, { backgroundColor: colors.background }]}>
+            <Feather name="grid" size={18} color={colors.petrol} />
+          </View>
+          <View style={styles.driverCopy}>
+            <Text style={[styles.driverTitle, { color: colors.petrol }]}>{isRTL ? 'لوحة تحكم السائق' : 'Driver Dashboard'}</Text>
+            <Text style={[styles.driverDescription, { color: colors.mutedForeground }]}>{isRTL ? 'عرض وقبول الرحلات المتاحة.' : 'View and accept available rides.'}</Text>
+          </View>
+          <Feather name="arrow-right" size={18} color={colors.petrol} />
+        </Pressable>
+
         <Text style={styles.sectionLabel}>{t('preferences')}</Text>
         <View style={styles.settingsCard}>
           <View style={[styles.languageRow, styles.settingBorder]}>

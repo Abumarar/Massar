@@ -158,6 +158,90 @@ export const CreateDriverApplicationResponse = zod.object({
 
 
 /**
+ * @summary Customer requests a new ride
+ */
+export const CreateRideBody = zod.object({
+  "passengerId": zod.string(),
+  "route": zod.string(),
+  "seats": zod.number(),
+  "fare": zod.number()
+})
+
+export const CreateRideResponse = zod.object({
+  "id": zod.string(),
+  "passengerId": zod.string(),
+  "driverId": zod.string().nullish(),
+  "route": zod.string(),
+  "seats": zod.number(),
+  "fare": zod.number(),
+  "status": zod.enum(['pending', 'accepted', 'completed', 'cancelled']),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Driver views available or active rides
+ */
+export const ListRidesQueryParams = zod.object({
+  "status": zod.enum(['pending', 'accepted', 'completed', 'cancelled']).optional()
+})
+
+export const ListRidesResponseItem = zod.object({
+  "id": zod.string(),
+  "passengerId": zod.string(),
+  "driverId": zod.string().nullish(),
+  "route": zod.string(),
+  "seats": zod.number(),
+  "fare": zod.number(),
+  "status": zod.enum(['pending', 'accepted', 'completed', 'cancelled']),
+  "createdAt": zod.coerce.date()
+})
+export const ListRidesResponse = zod.array(ListRidesResponseItem)
+
+
+/**
+ * @summary Get ride details
+ */
+export const GetRideParams = zod.object({
+  "rideId": zod.coerce.string()
+})
+
+export const GetRideResponse = zod.object({
+  "id": zod.string(),
+  "passengerId": zod.string(),
+  "driverId": zod.string().nullish(),
+  "route": zod.string(),
+  "seats": zod.number(),
+  "fare": zod.number(),
+  "status": zod.enum(['pending', 'accepted', 'completed', 'cancelled']),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Driver accepts a ride
+ */
+export const AcceptRideParams = zod.object({
+  "rideId": zod.coerce.string()
+})
+
+export const AcceptRideBody = zod.object({
+  "driverId": zod.string()
+})
+
+export const AcceptRideResponse = zod.object({
+  "id": zod.string(),
+  "passengerId": zod.string(),
+  "driverId": zod.string().nullish(),
+  "route": zod.string(),
+  "seats": zod.number(),
+  "fare": zod.number(),
+  "status": zod.enum(['pending', 'accepted', 'completed', 'cancelled']),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Get driver application details
  */
 export const GetDriverParams = zod.object({

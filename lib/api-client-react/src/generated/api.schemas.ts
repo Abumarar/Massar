@@ -9,6 +9,39 @@ export interface HealthStatus {
   status: string;
 }
 
+export type RideStatus = typeof RideStatus[keyof typeof RideStatus];
+
+
+export const RideStatus = {
+  pending: 'pending',
+  accepted: 'accepted',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface Ride {
+  id: string;
+  passengerId: string;
+  /** @nullable */
+  driverId?: string | null;
+  route: string;
+  seats: number;
+  fare: number;
+  status: RideStatus;
+  createdAt: string;
+}
+
+export interface RideInput {
+  passengerId: string;
+  route: string;
+  seats: number;
+  fare: number;
+}
+
+export interface AcceptRideInput {
+  driverId: string;
+}
+
 export type DriverStatus = typeof DriverStatus[keyof typeof DriverStatus];
 
 
@@ -192,5 +225,19 @@ export const ListDriversStatus = {
   approved: 'approved',
   rejected: 'rejected',
   suspended: 'suspended',
+} as const;
+
+export type ListRidesParams = {
+status?: ListRidesStatus;
+};
+
+export type ListRidesStatus = typeof ListRidesStatus[keyof typeof ListRidesStatus];
+
+
+export const ListRidesStatus = {
+  pending: 'pending',
+  accepted: 'accepted',
+  completed: 'completed',
+  cancelled: 'cancelled',
 } as const;
 

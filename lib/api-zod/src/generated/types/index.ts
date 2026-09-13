@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './acceptRideInput';
 export * from './complianceRequirement';
 export * from './documentReviewUpdate';
 export * from './documentStatus';
@@ -22,7 +23,12 @@ export * from './driverVehicle';
 export * from './healthStatus';
 export * from './listDriversParams';
 export * from './listDriversStatus';
+export * from './listRidesParams';
+export * from './listRidesStatus';
 export * from './operationsActivity';
 export * from './operationsRide';
 export * from './operationsRideStatus';
 export * from './operationsSummary';
+export * from './ride';
+export * from './rideInput';
+export * from './rideStatus';

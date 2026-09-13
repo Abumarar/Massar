@@ -55,6 +55,25 @@ export const operationsActivityTable = pgTable("massar_operations_activity", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const ridesTable = pgTable("massar_rides", {
+  id: text("id").primaryKey(),
+  passengerId: text("passenger_id").notNull(),
+  driverId: text("driver_id").references(() => driversTable.id),
+  route: text("route").notNull(),
+  seats: integer("seats").notNull(),
+  fare: real("fare").notNull(),
+  status: text("status").notNull().default("pending"), // pending, accepted, completed, cancelled
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
+
+export const activeDriversTable = pgTable("massar_active_drivers", {
+  driverId: text("driver_id").primaryKey().references(() => driversTable.id),
+  isOnline: integer("is_online").notNull().default(1), // 1 for online, 0 for offline
+  currentLocation: text("current_location"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
+
 export const insertDriverSchema = createInsertSchema(driversTable).omit({
   createdAt: true,
   updatedAt: true,
@@ -67,9 +86,18 @@ export const insertOperationsRideSchema = createInsertSchema(operationsRidesTabl
   createdAt: true,
 });
 export const insertOperationsActivitySchema = createInsertSchema(operationsActivityTable);
+export const insertRideSchema = createInsertSchema(ridesTable).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertActiveDriverSchema = createInsertSchema(activeDriversTable).omit({
+  updatedAt: true,
+});
 
 export type InsertDriver = z.infer<typeof insertDriverSchema>;
 export type Driver = typeof driversTable.$inferSelect;
 export type DriverDocument = typeof driverDocumentsTable.$inferSelect;
 export type OperationsRide = typeof operationsRidesTable.$inferSelect;
 export type OperationsActivity = typeof operationsActivityTable.$inferSelect;
+export type Ride = typeof ridesTable.$inferSelect;
+export type ActiveDriver = typeof activeDriversTable.$inferSelect;
