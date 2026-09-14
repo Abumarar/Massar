@@ -92,7 +92,7 @@ router.get("/ride-requests", async (req, res, next) => {
         destLng: req.destinationLng,
         seatsRequested: req.seatsRequested,
         estimatedFare: req.estimatedFare,
-        createdAt: req.createdAt.toISOString(),
+        createdAt: req.createdAt ? new Date(req.createdAt).toISOString() : new Date().toISOString(),
         passenger: {
           fullName: req.passenger?.fullName || "Unknown",
           phone: req.passenger?.phone || "Unknown",
@@ -106,8 +106,8 @@ router.get("/ride-requests", async (req, res, next) => {
       }));
 
       return res.status(200).json(mapped);
-    } catch (error) {
-      return res.status(500).json({ error: "Internal server error" });
+    } catch (error: any) {
+      return res.status(500).json({ error: "Internal server error", details: error.message, stack: error.stack });
     }
   }
   
@@ -161,7 +161,7 @@ router.get("/ride-requests", async (req, res, next) => {
       destLng: req.destinationLng,
       seatsRequested: req.seatsRequested,
       estimatedFare: req.estimatedFare,
-      createdAt: req.createdAt.toISOString(),
+      createdAt: req.createdAt ? new Date(req.createdAt).toISOString() : new Date().toISOString(),
       passenger: {
         fullName: req.passenger?.fullName || "Unknown",
         phone: req.passenger?.phone || "Unknown",
@@ -175,8 +175,8 @@ router.get("/ride-requests", async (req, res, next) => {
     }));
 
     res.status(200).json(mapped);
-  } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+  } catch (error: any) {
+    res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
 
