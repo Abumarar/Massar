@@ -20,7 +20,7 @@ import { I18nManager } from 'react-native';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
-setBaseUrl(process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : 'http://localhost:3000');
+setBaseUrl(process.env.EXPO_PUBLIC_API_URL || 'https://massar-api.onrender.com');
 
 I18nManager.allowRTL(true);
 I18nManager.forceRTL(true);
