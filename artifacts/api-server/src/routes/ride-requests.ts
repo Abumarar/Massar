@@ -64,7 +64,55 @@ router.post("/ride-requests", authenticateToken, async (req: AuthRequest, res) =
   }
 });
 
-router.get("/ride-requests", authenticateToken, async (req: AuthRequest, res) => {
+router.get("/ride-requests", async (req, res, next) => {
+  if (req.query.role === "admin") {
+    try {
+      const requests = await db.query.rideRequestsTable.findMany({
+        with: {
+          passenger: true,
+          matchedCaptain: {
+            with: {
+              user: true,
+              vehicle: true,
+            }
+          }
+        },
+        orderBy: (requests, { desc }) => [desc(requests.createdAt)],
+      });
+
+      const mapped = requests.map(req => ({
+        id: req.id,
+        passengerId: req.passengerId,
+        matchedCaptainId: req.matchedCaptainId,
+        routeId: req.routeId,
+        status: req.status,
+        pickupLat: req.pickupLat,
+        pickupLng: req.pickupLng,
+        destLat: req.destinationLat,
+        destLng: req.destinationLng,
+        seatsRequested: req.seatsRequested,
+        estimatedFare: req.estimatedFare,
+        createdAt: req.createdAt.toISOString(),
+        passenger: {
+          fullName: req.passenger?.fullName || "Unknown",
+          phone: req.passenger?.phone || "Unknown",
+        },
+        captain: req.matchedCaptain ? {
+          fullName: req.matchedCaptain.user?.fullName || "Unknown",
+          phone: req.matchedCaptain.user?.phone || "Unknown",
+          vehicleMakeModel: req.matchedCaptain.vehicle?.makeModel || "Unknown",
+          vehiclePlate: req.matchedCaptain.vehicle?.plate || "Unknown",
+        } : undefined
+      }));
+
+      return res.status(200).json(mapped);
+    } catch (error) {
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  }
+  
+  return authenticateToken(req, res, next);
+}, async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.id;
     const role = req.query.role as string;
@@ -85,8 +133,6 @@ router.get("/ride-requests", authenticateToken, async (req: AuthRequest, res) =>
     } else {
       whereClause = eq(rideRequestsTable.passengerId, userId);
     }
-
-    // TODO: Add status filtering if provided
 
     const requests = await db.query.rideRequestsTable.findMany({
       where: whereClause,

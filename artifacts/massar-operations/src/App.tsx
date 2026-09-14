@@ -5,7 +5,7 @@ import { useListRideRequests } from '@workspace/api-client-react';
 const queryClient = new QueryClient();
 
 function Overview() {
-  const query = useListRideRequests({ role: 'captain' });
+  const query = useListRideRequests({ role: 'admin' });
   
   return (
     <div className="mx-auto max-w-[1440px] ops-fade-in p-8">
