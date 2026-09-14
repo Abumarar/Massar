@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { RideStatus } from './rideStatus';
+import type { RideType } from './rideType';
 
 export interface Ride {
   id: string;
@@ -14,6 +15,9 @@ export interface Ride {
   totalSeats: number;
   availableSeats: number;
   farePerSeat: number;
+  type: RideType;
+  /** @nullable */
+  rentalHours?: number | null;
   status: RideStatus;
   /** @nullable */
   departureTime?: Date | null;

@@ -10,17 +10,14 @@ import {
   View,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import * as Location from 'expo-location';
 import { Feather } from '@expo/vector-icons';
-import { Map, Marker } from '@/components/Map';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
 import { useListRides, useBookRide, Ride } from '@workspace/api-client-react';
-
-type BookingStage = 'home' | 'matches' | 'confirm' | 'waiting';
+import { JORDAN_GOVERNORATES } from '@/constants/governorates';
 
 type StoredTrip = {
   id: string;
@@ -33,7 +30,6 @@ type StoredTrip = {
   createdAt: string;
 };
 
-// Generate or get passenger ID
 const getPassengerId = async () => {
   let id = await AsyncStorage.getItem('@massar/passengerId');
   if (!id) {
@@ -50,57 +46,24 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   
-  const [stage, setStage] = useState<BookingStage>('home');
-  const [seats, setSeats] = useState(1);
-  const [pickupLabel, setPickupLabel] = useState('Jerash');
-  const [isLocating, setIsLocating] = useState(false);
   const [passengerId, setPassengerId] = useState<string | null>(null);
-  const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
   
+  // Filtering state
+  const [activeTab, setActiveTab] = useState<'standard' | 'hourly'>('standard');
+  const [selectedGovernorate, setSelectedGovernorate] = useState(JORDAN_GOVERNORATES[0]);
+  
+  // Booking flow state
+  const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
+  const [seatsToBook, setSeatsToBook] = useState(1);
+
   useEffect(() => {
     getPassengerId().then(setPassengerId);
   }, []);
 
-  const { data: rides, isLoading } = useListRides({ status: 'open' }, { query: { enabled: stage === 'matches' || stage === 'home' } as any });
+  const { data: rides, isLoading } = useListRides({ status: 'open' });
   const bookRideMutation = useBookRide();
 
-  const pickupText = pickupLabel === 'Jerash' ? t('jerash') : pickupLabel;
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
-
-  const selectSeats = (count: number) => {
-    void Haptics.selectionAsync();
-    setSeats(count);
-  };
-
-  const useCurrentLocation = async () => {
-    setIsLocating(true);
-    try {
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (permission.status !== 'granted') {
-        Alert.alert(t('locationPermissionNeeded'), t('allowLocation'));
-        return;
-      }
-      const current = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      setPickupLabel('Current location');
-      Alert.alert(
-        t('pickupLocated'),
-        isRTL
-          ? `موقعك جاهز (${current.coords.latitude.toFixed(3)}، ${current.coords.longitude.toFixed(3)}).`
-          : `Your position is ready (${current.coords.latitude.toFixed(3)}, ${current.coords.longitude.toFixed(3)}).`,
-      );
-    } catch {
-      Alert.alert(
-        t('locationUnavailable'),
-        isRTL
-          ? 'تعذّر الوصول إلى موقعك. يمكنك المتابعة باستخدام جرش كنقطة انطلاق.'
-          : 'We could not access your location. You can continue with Jerash as your pickup.',
-      );
-    } finally {
-      setIsLocating(false);
-    }
-  };
 
   const confirmBooking = async () => {
     if (!passengerId || !selectedRide) return;
@@ -109,16 +72,16 @@ export default function HomeScreen() {
         rideId: selectedRide.id,
         data: {
           passengerId,
-          seatsBooked: seats,
+          seatsBooked: seatsToBook,
         }
       });
       
       const trip: StoredTrip = {
         id: booking.id,
         captain: `Driver ${selectedRide.driverId.slice(-4)}`,
-        vehicle: 'Car', // placeholder
+        vehicle: 'Car',
         route: selectedRide.route,
-        seats: seats,
+        seats: seatsToBook,
         fare: booking.totalFare,
         status: isRTL ? 'مؤكد' : 'Confirmed',
         createdAt: booking.createdAt,
@@ -129,14 +92,14 @@ export default function HomeScreen() {
       await AsyncStorage.setItem('@massar/trips', JSON.stringify([trip, ...existing]));
       
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setStage('home');
       setSelectedRide(null);
+      setSeatsToBook(1);
       
       Alert.alert(
         t('rideRequested'),
         isRTL
-          ? `تم تأكيد حجز ${seats} ${seats === 1 ? t('seat') : t('seats')}.`
-          : `Your booking for ${seats} ${seats === 1 ? t('seat') : t('seats')} is confirmed!`,
+          ? `تم تأكيد حجز ${seatsToBook} ${seatsToBook === 1 ? t('seat') : t('seats')}.`
+          : `Your booking for ${seatsToBook} ${seatsToBook === 1 ? t('seat') : t('seats')} is confirmed!`,
         [{ text: t('viewTrip'), onPress: () => router.navigate('/(tabs)/trips') }],
       );
     } catch (e) {
@@ -144,356 +107,472 @@ export default function HomeScreen() {
     }
   };
 
-  if (stage === 'matches') {
+  const copy = isRTL ? {
+    feedTitle: "الرحلات المتاحة",
+    feedSubtitle: "تصفح واختر رحلتك",
+    standard: "رحلات عادية",
+    hourly: "تأجير بالساعة",
+    filterGov: "المحافظة:",
+    noRides: "لا توجد رحلات متاحة بهذه المواصفات.",
+    bookTitle: "تأكيد الحجز",
+    bookSubtitle: "اختر عدد المقاعد للحجز",
+    requestBtn: "تأكيد الحجز",
+    cancelBtn: "إلغاء",
+    hours: "ساعات",
+    pricePerHour: "دينار / ساعة",
+    available: "متاح",
+    perSeat: "دينار / مقعد",
+  } : {
+    feedTitle: "Available Trips",
+    feedSubtitle: "Browse and book your next ride",
+    standard: "Standard",
+    hourly: "Hourly (Hangout)",
+    filterGov: "Governorate:",
+    noRides: "No rides available matching these filters.",
+    bookTitle: "Confirm Booking",
+    bookSubtitle: "Select number of seats to book",
+    requestBtn: "Confirm Booking",
+    cancelBtn: "Cancel",
+    hours: "hours",
+    pricePerHour: "JOD / hour",
+    available: "available",
+    perSeat: "JOD / seat",
+  };
+
+  // Confirmation screen overlay
+  if (selectedRide) {
+    const isHourly = selectedRide.type === 'hourly';
+    const totalFare = selectedRide.farePerSeat * seatsToBook;
+    
     return (
       <View style={styles.screen}>
-        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomInset + 100 }]} showsVerticalScrollIndicator={false}>
-          <TopBar title={t('availableRides')} onBack={() => setStage('home')} colors={colors} styles={styles} />
-          <View style={styles.routePill}>
-            <View style={styles.routePillDot} />
-            <Text style={styles.routePillText}>{pickupText} → {t('amman')}</Text>
-            <Text style={styles.routePillSeats}>{seats} {seats === 1 ? t('seat') : t('seats')}</Text>
-          </View>
-          <Text style={styles.pageTitle}>{t('betterWayToGo')}</Text>
-          <Text style={styles.pageSubtitle}>{t('foundCaptain')}</Text>
-
-          {isLoading && <Text style={{ color: colors.mutedForeground, marginTop: 20 }}>Loading rides...</Text>}
-          {!isLoading && rides?.length === 0 && <Text style={{ color: colors.mutedForeground, marginTop: 20 }}>No rides available at the moment.</Text>}
-          
-          {rides?.filter(r => r.availableSeats >= seats).map(ride => (
-            <Pressable 
-              key={ride.id} 
-              onPress={() => {
-                setSelectedRide(ride);
-                setStage('confirm');
-              }} 
-              style={({ pressed }) => [styles.captainCard, pressed && styles.pressed, { marginBottom: 16 }]}
-            >
-              <View style={styles.captainHeader}>
-                <View style={styles.avatar}><Text style={styles.avatarText}>{ride.driverId.slice(-2).toUpperCase()}</Text></View>
-                <View style={styles.captainNameBlock}>
-                  <Text style={styles.captainName}>Driver {ride.driverId.slice(-4)}</Text>
-                  <View style={styles.ratingLine}>
-                    <Feather name="star" size={14} color={colors.gold} />
-                    <Text style={styles.ratingText}>4.9</Text>
-                  </View>
-                </View>
-                <Feather name="chevron-right" size={19} color={colors.mutedForeground} />
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.metricsRow}>
-                <Metric icon="clock" label={t('arrivesIn')} value="N/A" colors={colors} styles={styles} />
-                <Metric icon="users" label={t('seatsLeft')} value={`${ride.availableSeats}`} colors={colors} styles={styles} />
-              </View>
-              <View style={styles.fareBand}>
-                <View>
-                  <Text style={styles.fareLabel}>{t('estimatedTotal')}</Text>
-                  <Text style={styles.fareNote}>{ride.farePerSeat} JOD / {t('seat')}</Text>
-                </View>
-                <Text style={styles.fareAmount}>{(ride.farePerSeat * seats).toFixed(2)} JOD</Text>
-              </View>
+        <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: bottomInset + 100 }]}>
+          <View style={styles.topBar}>
+            <Pressable onPress={() => { setSelectedRide(null); setSeatsToBook(1); }} style={styles.iconButton}>
+              <Feather name="arrow-left" size={21} color={colors.ink} />
             </Pressable>
-          ))}
-          
-          <View style={styles.infoCallout}>
-            <Feather name="info" size={17} color={colors.petrol} />
-            <Text style={styles.infoText}>
-              {isRTL
-                ? `أنت تحجز ${seats} ${seats === 1 ? t('seat') : t('seats')}. سيتم حسم المقاعد فور التأكيد.`
-                : `You are booking ${seats} ${seats === 1 ? t('seat') : t('seats')}. Seats are reserved instantly.`}
-            </Text>
+            <Text style={styles.topBarTitle}>{copy.bookTitle}</Text>
+            <View style={{ width: 40 }} />
           </View>
-        </ScrollView>
-      </View>
-    );
-  }
-
-  if (stage === 'confirm' && selectedRide) {
-    const totalFare = selectedRide.farePerSeat * seats;
-    return (
-      <View style={styles.screen}>
-        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomInset + 100 }]} showsVerticalScrollIndicator={false}>
-          <TopBar title={t('confirmRide')} onBack={() => { setStage('matches'); setSelectedRide(null); }} colors={colors} styles={styles} />
-          <Text style={styles.pageTitle}>{t('readyWhenYouAre')}</Text>
-          <Text style={styles.pageSubtitle}>{t('reviewRide')}</Text>
+          
+          <Text style={styles.confirmSubtitle}>{copy.bookSubtitle}</Text>
+          
           <View style={styles.confirmCard}>
-            <View style={styles.confirmRoute}>
-              <View style={styles.routeRail}>
-                <View style={styles.routeDotFilled} />
-                <View style={styles.routeRailLine} />
-                <View style={styles.routeDotOutline} />
+            <View style={styles.confirmRouteRow}>
+              <View style={styles.confirmRouteIcon}>
+                <Feather name={isHourly ? "clock" : "navigation"} size={18} color={colors.gold} />
               </View>
-              <View style={styles.confirmLocations}>
-                <LocationRow label={t('pickup')} value={pickupText} destination={false} colors={colors} styles={styles} />
-                <View style={styles.locationGap} />
-                <LocationRow label={t('to')} value={t('amman')} destination colors={colors} styles={styles} />
+              <Text style={styles.confirmRouteText}>
+                {isHourly ? `${selectedRide.route} · ${selectedRide.rentalHours} ${copy.hours}` : selectedRide.route}
+              </Text>
+            </View>
+            
+            <View style={styles.divider} />
+            
+            {!isHourly && (
+              <>
+                <Text style={styles.seatPickerLabel}>{isRTL ? 'عدد المقاعد' : 'Number of Seats'}</Text>
+                <View style={styles.seatPicker}>
+                  {[1, 2, 3, 4].map(count => (
+                    <Pressable 
+                      key={count} 
+                      disabled={count > selectedRide.availableSeats}
+                      onPress={() => { void Haptics.selectionAsync(); setSeatsToBook(count); }} 
+                      style={[
+                        styles.seatOption, 
+                        seatsToBook === count && styles.seatOptionSelected,
+                        count > selectedRide.availableSeats && { opacity: 0.25 }
+                      ]}
+                    >
+                      <Text style={[styles.seatNumber, seatsToBook === count && styles.seatNumberSelected]}>{count}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </>
+            )}
+            
+            <View style={styles.confirmSummary}>
+              <View style={styles.confirmLine}>
+                <Text style={styles.confirmLabel}>{isRTL ? 'سعر المقعد' : 'Price per seat'}</Text>
+                <Text style={styles.confirmValue}>{selectedRide.farePerSeat.toFixed(2)} JOD</Text>
+              </View>
+              <View style={styles.confirmLine}>
+                <Text style={styles.confirmLabel}>{isRTL ? 'عدد المقاعد' : 'Seats'}</Text>
+                <Text style={styles.confirmValue}>×{seatsToBook}</Text>
+              </View>
+              <View style={styles.confirmDividerThin} />
+              <View style={styles.confirmLine}>
+                <Text style={styles.confirmTotalLabel}>{t('estimatedTotal')}</Text>
+                <Text style={styles.confirmTotalValue}>{totalFare.toFixed(2)} JOD</Text>
               </View>
             </View>
-            <View style={styles.divider} />
-            <SummaryLine label={t('captain')} value={`Driver ${selectedRide.driverId.slice(-4)}`} styles={styles} />
-            <SummaryLine label={t('passengers')} value={`${seats} ${seats === 1 ? t('seat') : t('seats')}`} styles={styles} />
-            <SummaryLine label={t('estimatedTotal')} value={`${totalFare.toFixed(2)} JOD`} styles={styles} emphasis />
           </View>
-          <View style={styles.privacyNote}>
-            <Feather name="shield" size={17} color={colors.mintStrong} />
-            <Text style={styles.privacyText}>{t('privacyMessage')}</Text>
-          </View>
-          <Pressable onPress={() => void confirmBooking()} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-            <Text style={styles.primaryButtonText}>{t('requestRide')}</Text>
-            <Feather name="arrow-right" size={19} color={colors.primaryForeground} />
+
+          <Pressable onPress={confirmBooking} style={({ pressed }) => [styles.primaryButton, pressed && { opacity: 0.85 }]}>
+            <Text style={styles.primaryButtonText}>{copy.requestBtn}</Text>
+            <Feather name="check" size={19} color={colors.primaryForeground} />
           </Pressable>
-          <Pressable onPress={() => { setStage('matches'); setSelectedRide(null); }} style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>{t('keepBrowsing')}</Text>
+          <Pressable onPress={() => setSelectedRide(null)} style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>{copy.cancelBtn}</Text>
           </Pressable>
         </ScrollView>
       </View>
     );
   }
+
+  // Filter rides based on type and governorate
+  const filteredRides = Array.isArray(rides) ? rides.filter(ride => {
+    const matchType = (ride.type || 'standard') === activeTab;
+    const matchGov = activeTab === 'hourly' 
+      ? ride.route === selectedGovernorate
+      : ride.route.includes(selectedGovernorate);
+    return matchType && matchGov;
+  }) : [];
 
   return (
     <View style={styles.screen}>
+      {/* Header */}
+      <View style={[styles.headerArea, { paddingTop: insets.top + 10 }]}>
+        <View style={styles.brandRow}>
+          <Image source={require('@/assets/images/icon.png')} style={styles.brandIcon} />
+          <View>
+            <Text style={styles.brandName}>Massar</Text>
+            <Text style={styles.brandArabic}>مسار</Text>
+          </View>
+        </View>
+        <Pressable accessibilityLabel={t('profile')} onPress={() => router.navigate('/(tabs)/profile')} style={styles.profileButton}>
+          <Feather name="user" size={17} color={colors.ink} />
+        </Pressable>
+      </View>
+
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomInset + 100 }]} showsVerticalScrollIndicator={false}>
-        <View style={styles.mapPanel}>
-          {Platform.OS !== 'web' ? (
-            <Map
-              style={StyleSheet.absoluteFill}
-              initialRegion={{
-                latitude: 32.2801,
-                longitude: 35.8986,
-                latitudeDelta: 0.1,
-                longitudeDelta: 0.1,
-              }}
+        {/* Hero section */}
+        <View style={styles.heroSection}>
+          <Text style={styles.heroTitle}>{copy.feedTitle}</Text>
+          <Text style={styles.heroSubtitle}>{copy.feedSubtitle}</Text>
+        </View>
+        
+        {/* Type Toggle */}
+        <View style={styles.typeToggle}>
+          <Pressable 
+            style={[styles.typeBtn, activeTab === 'standard' && styles.typeBtnActive]} 
+            onPress={() => setActiveTab('standard')}
+          >
+            <Feather name="navigation" size={14} color={activeTab === 'standard' ? colors.primaryForeground : colors.mutedForeground} style={{ marginRight: 6 }} />
+            <Text style={[styles.typeText, activeTab === 'standard' && styles.typeTextActive]}>{copy.standard}</Text>
+          </Pressable>
+          <Pressable 
+            style={[styles.typeBtn, activeTab === 'hourly' && styles.typeBtnActive]} 
+            onPress={() => setActiveTab('hourly')}
+          >
+            <Feather name="clock" size={14} color={activeTab === 'hourly' ? colors.primaryForeground : colors.mutedForeground} style={{ marginRight: 6 }} />
+            <Text style={[styles.typeText, activeTab === 'hourly' && styles.typeTextActive]}>{copy.hourly}</Text>
+          </Pressable>
+        </View>
+
+        {/* Governorate Filter */}
+        <Text style={styles.filterLabel}>{copy.filterGov}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.govScroll} contentContainerStyle={styles.govContent}>
+          {JORDAN_GOVERNORATES.map(gov => (
+            <Pressable 
+              key={gov} 
+              style={[styles.govChip, selectedGovernorate === gov && styles.govChipActive]}
+              onPress={() => setSelectedGovernorate(gov)}
             >
-              <Marker coordinate={{ latitude: 32.2801, longitude: 35.8986 }} />
-              <Marker coordinate={{ latitude: 31.9454, longitude: 35.9284 }} />
-            </Map>
-          ) : (
-            <>
-              <View style={[styles.mapRoad, styles.mapRoadOne]} />
-              <View style={[styles.mapRoad, styles.mapRoadTwo]} />
-              <View style={[styles.mapRoad, styles.mapRoadThree]} />
-            </>
-          )}
-          <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
-            <View style={{ padding: 18 }}>
-              <View style={styles.mapTopBar}>
-                <View style={styles.brandRow}>
-                  <Image source={require('@/assets/images/icon.png')} style={styles.brandIcon} />
-                  <View>
-                    <Text style={styles.brandName}>Masar</Text>
-                    <Text style={styles.brandArabic}>مسار</Text>
-                  </View>
+              <Text style={[styles.govText, selectedGovernorate === gov && styles.govTextActive]}>{gov}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+        <View style={{ height: 20 }} />
+
+        {/* Loading */}
+        {isLoading && (
+          <View style={styles.emptyState}>
+            <Feather name="loader" size={32} color={colors.gold} style={{ opacity: 0.6 }} />
+            <Text style={styles.emptyText}>{isRTL ? 'جاري التحميل...' : 'Loading trips...'}</Text>
+          </View>
+        )}
+        
+        {/* Empty state */}
+        {!isLoading && filteredRides.length === 0 && (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIcon}>
+              <Feather name="map" size={28} color={colors.gold} />
+            </View>
+            <Text style={styles.emptyTitle}>{isRTL ? 'لا توجد رحلات' : 'No trips available'}</Text>
+            <Text style={styles.emptyText}>{copy.noRides}</Text>
+          </View>
+        )}
+
+        {/* Trip cards */}
+        {filteredRides.map(ride => (
+          <Pressable 
+            key={ride.id} 
+            onPress={() => {
+              void Haptics.selectionAsync();
+              setSelectedRide(ride);
+              setSeatsToBook(1);
+            }} 
+            style={({ pressed }) => [styles.tripCard, pressed && { transform: [{ scale: 0.98 }] }]}
+          >
+            {/* Driver info header */}
+            <View style={styles.driverRow}>
+              <View style={styles.driverAvatar}>
+                <Text style={styles.driverAvatarText}>{ride.driverId.slice(-2).toUpperCase()}</Text>
+              </View>
+              <View style={styles.driverInfo}>
+                <Text style={styles.driverName}>Driver {ride.driverId.slice(-4)}</Text>
+                <View style={styles.ratingRow}>
+                  <Feather name="star" size={12} color={colors.gold} />
+                  <Text style={styles.ratingText}>4.9</Text>
                 </View>
-                <Pressable accessibilityLabel={t('profile')} onPress={() => router.navigate('/(tabs)/profile')} style={styles.mapProfileButton}>
-                  <Feather name="user" size={17} color={colors.ink} />
-                </Pressable>
               </View>
-              <View style={styles.mapRouteBadge}>
-                <View style={styles.liveDot} />
-                <Text style={styles.mapRouteText}>{pickupText} ↔ {t('amman')}</Text>
-              </View>
-            </View>
-          </View>
-          <Text style={styles.heroTitle}>{t('tagline')}</Text>
-          <Text style={styles.heroArabic}>{isRTL ? 'Your trip starts from here' : 'توصلها بثقة'}</Text>
-        </View>
-
-        <View style={styles.bookingCard}>
-          <View style={styles.cardEyebrow}>
-            <Feather name="navigation" size={14} color={colors.petrol} />
-            <Text style={styles.cardEyebrowText}>{t('planRide')}</Text>
-          </View>
-          <View style={styles.locationStack}>
-            <LocationRow label={t('from')} value={pickupText} colors={colors} styles={styles} />
-            <View style={styles.locationConnector} />
-            <LocationRow label={t('to')} value={t('amman')} destination colors={colors} styles={styles} />
-          </View>
-          <Pressable onPress={() => void useCurrentLocation()} style={styles.locationAction}>
-            <Feather name={isLocating ? 'loader' : 'crosshair'} size={15} color={colors.petrol} />
-            <Text style={styles.locationActionText}>{isLocating ? t('findingLocation') : t('useCurrentLocation')}</Text>
-          </Pressable>
-          <View style={styles.divider} />
-          <View style={styles.seatHeader}>
-            <View>
-              <Text style={styles.seatTitle}>{t('howManySeats')}</Text>
-              <Text style={styles.seatSubtitle}>{t('bringEveryone')}</Text>
-            </View>
-            <View style={styles.seatIcon}><Feather name="users" size={18} color={colors.petrol} /></View>
-          </View>
-          <View style={styles.seatPicker}>
-            {[1, 2, 3, 4].map((count) => (
-              <Pressable key={count} accessibilityLabel={`${count} ${count === 1 ? t('seat') : t('seats')}`} onPress={() => selectSeats(count)} style={({ pressed }) => [styles.seatOption, seats === count && styles.seatOptionSelected, pressed && styles.pressed]}>
-                <Text style={[styles.seatNumber, seats === count && styles.seatNumberSelected]}>{count}</Text>
-                <Text style={[styles.seatWord, seats === count && styles.seatWordSelected]}>{count === 1 ? t('seat') : t('seats')}</Text>
+              <Pressable style={styles.bookBtn} onPress={() => { setSelectedRide(ride); setSeatsToBook(1); }}>
+                <Text style={styles.bookBtnText}>{isRTL ? 'حجز' : 'Book'}</Text>
+                <Feather name="arrow-right" size={14} color={colors.primaryForeground} />
               </Pressable>
-            ))}
-          </View>
-          <Pressable accessibilityLabel={t('findRide')} onPress={() => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setStage('matches'); }} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-            <Text style={styles.primaryButtonText}>{t('findRide')}</Text>
-            <Feather name="arrow-right" size={19} color={colors.primaryForeground} />
-          </Pressable>
-        </View>
+            </View>
+            
+            {/* Route pill */}
+            <View style={styles.tripRouteRow}>
+              <View style={styles.tripRouteIcon}>
+                <Feather name={activeTab === 'hourly' ? "clock" : "navigation"} size={14} color={colors.gold} />
+              </View>
+              <Text style={styles.tripRouteText}>
+                {activeTab === 'hourly' ? `${ride.route} · ${ride.rentalHours} ${copy.hours}` : ride.route}
+              </Text>
+            </View>
 
-        <View style={styles.promiseRow}>
-          <Promise icon="map" label={t('routeMatched')} colors={colors} styles={styles} />
-          <Promise icon="shield" label={t('verifiedCaptains')} colors={colors} styles={styles} />
-          <Promise icon="credit-card" label={t('fairPricing')} colors={colors} styles={styles} />
-        </View>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('recentRides')}</Text>
-          <Pressable onPress={() => router.navigate('/(tabs)/trips')}><Text style={styles.sectionAction}>{t('seeAll')}</Text></Pressable>
-        </View>
-        <View style={styles.recentCard}>
-          <View style={styles.recentRouteIcon}><Feather name="arrow-up-right" size={18} color={colors.petrol} /></View>
-          <View style={styles.recentCopy}>
-            <Text style={styles.recentRoute}>{pickupText} → {t('amman')}</Text>
-            <Text style={styles.recentMeta}>{t('noCompletedRides')}</Text>
-          </View>
-          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-        </View>
+            {/* Metrics */}
+            <View style={styles.metricsRow}>
+              {activeTab === 'standard' && (
+                <View style={styles.metricChip}>
+                  <Feather name="users" size={13} color={colors.petrol} />
+                  <Text style={styles.metricText}>{ride.availableSeats}/{ride.totalSeats} {copy.available}</Text>
+                </View>
+              )}
+              <View style={styles.fareChip}>
+                <Text style={styles.fareAmount}>{ride.farePerSeat.toFixed(2)}</Text>
+                <Text style={styles.fareCurrency}>{activeTab === 'hourly' ? copy.pricePerHour : copy.perSeat}</Text>
+              </View>
+            </View>
+          </Pressable>
+        ))}
       </ScrollView>
     </View>
   );
 }
 
-function TopBar({ title, onBack, colors, styles }: { title: string; onBack: () => void; colors: ReturnType<typeof useColors>; styles: ReturnType<typeof createStyles> }) {
-  return (
-    <View style={styles.topBar}>
-      <Pressable accessibilityLabel="Back" onPress={onBack} style={styles.iconButton}><Feather name="arrow-left" size={21} color={colors.ink} /></Pressable>
-      <Text style={styles.topBarTitle}>{title}</Text>
-      <View style={styles.topBarSpacer} />
-    </View>
-  );
-}
-
-function LocationRow({ label, value, destination, colors, styles }: { label: string; value: string; destination?: boolean; colors: ReturnType<typeof useColors>; styles: ReturnType<typeof createStyles> }) {
-  return (
-    <View style={styles.locationRow}>
-      <View style={[styles.locationMarker, destination && styles.locationMarkerDestination]}>
-        <Feather name={destination ? 'map-pin' : 'circle'} size={destination ? 13 : 10} color={destination ? colors.coral : colors.petrol} />
-      </View>
-      <View><Text style={styles.locationLabel}>{label}</Text><Text style={styles.locationValue}>{value}</Text></View>
-    </View>
-  );
-}
-
-function SummaryLine({ label, value, styles, emphasis = false }: { label: string; value: string; styles: ReturnType<typeof createStyles>; emphasis?: boolean }) {
-  return <View style={styles.confirmLine}><Text style={styles.confirmLabel}>{label}</Text><Text style={emphasis ? styles.confirmFare : styles.confirmValue}>{value}</Text></View>;
-}
-
-function Metric({ icon, label, value, colors, styles }: { icon: keyof typeof Feather.glyphMap; label: string; value: string; colors: ReturnType<typeof useColors>; styles: ReturnType<typeof createStyles> }) {
-  return <View style={styles.metric}><Feather name={icon} size={15} color={colors.mutedForeground} /><Text style={styles.metricLabel}>{label}</Text><Text style={styles.metricValue}>{value}</Text></View>;
-}
-
-function Promise({ icon, label, colors, styles }: { icon: keyof typeof Feather.glyphMap; label: string; colors: ReturnType<typeof useColors>; styles: ReturnType<typeof createStyles> }) {
-  return <View style={styles.promise}><Feather name={icon} size={15} color={colors.mintStrong} /><Text style={styles.promiseText}>{label}</Text></View>;
-}
-
 const createStyles = (colors: ReturnType<typeof useColors>) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 18, paddingTop: 14 },
-  mapPanel: { backgroundColor: '#e4e6e8', borderRadius: 22, minHeight: 248, padding: 18, overflow: 'hidden', borderWidth: 1, borderColor: '#d7dade', position: 'relative' },
-  mapRoad: { position: 'absolute', height: 18, borderRadius: 10, backgroundColor: '#f5f5f3', opacity: 0.9 },
-  mapRoadOne: { width: 330, top: 108, left: -35, transform: [{ rotate: '-18deg' }] },
-  mapRoadTwo: { width: 280, top: 172, right: -70, transform: [{ rotate: '26deg' }] },
-  mapRoadThree: { width: 230, top: 48, right: -30, transform: [{ rotate: '-42deg' }] },
-  mapTopBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  
+  // Header
+  headerArea: { 
+    paddingHorizontal: 18, 
+    paddingBottom: 14, 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    backgroundColor: colors.card, 
+    borderBottomWidth: 1, 
+    borderBottomColor: colors.border,
+  },
   brandRow: { flexDirection: 'row', alignItems: 'center' },
-  brandIcon: { width: 40, height: 40, borderRadius: 13, marginRight: 10 },
-  brandName: { color: colors.ink, fontSize: 18, fontWeight: '800', letterSpacing: 0.2 },
+  brandIcon: { width: 42, height: 42, borderRadius: 14, marginRight: 10 },
+  brandName: { color: colors.ink, fontSize: 19, fontWeight: '800', letterSpacing: 0.3 },
   brandArabic: { color: colors.gold, fontSize: 11, fontWeight: '700', marginTop: -1 },
-  mapProfileButton: { width: 40, height: 40, borderRadius: 13, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
-  mapRouteBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: '#ffffff', borderRadius: 18, paddingHorizontal: 10, paddingVertical: 7, marginTop: 22 },
-  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.gold, marginRight: 7 },
-  mapRouteText: { color: colors.ink, fontSize: 10, fontWeight: '700' },
-  mapRouteLine: { position: 'absolute', left: 73, top: 126, width: 152, height: 5, borderRadius: 3, backgroundColor: colors.routeLine, transform: [{ rotate: '-15deg' }] },
-  mapMarker: { position: 'absolute', width: 27, height: 27, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  mapMarkerStart: { left: 55, top: 113, backgroundColor: '#ffffff', borderWidth: 5, borderColor: colors.gold },
-  mapMarkerEnd: { right: 70, top: 78, backgroundColor: colors.petrol },
-  mapMarkerCore: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.petrol },
-  heroTitle: { color: colors.ink, fontSize: 32, lineHeight: 36, fontWeight: '800', marginTop: 38, maxWidth: 285, letterSpacing: -0.8 },
-  heroArabic: { color: colors.mutedForeground, fontSize: 14, marginTop: 7, fontWeight: '600' },
-  bookingCard: { backgroundColor: colors.card, marginTop: -26, borderRadius: 23, padding: 18, borderWidth: 1, borderColor: colors.border, zIndex: 2, elevation: 4 },
-  cardEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 17 },
-  cardEyebrowText: { color: colors.petrol, fontSize: 10, fontWeight: '800', letterSpacing: 1.1 },
-  locationStack: { position: 'relative' },
-  locationRow: { flexDirection: 'row', alignItems: 'center', minHeight: 39 },
-  locationMarker: { width: 27, height: 27, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.mint, marginRight: 12 },
-  locationMarkerDestination: { backgroundColor: '#fff0e7' },
-  locationLabel: { color: colors.mutedForeground, fontSize: 11, fontWeight: '600', marginBottom: 2 },
-  locationValue: { color: colors.ink, fontSize: 17, fontWeight: '700' },
-  locationConnector: { position: 'absolute', left: 13, top: 31, height: 22, borderLeftWidth: 1, borderStyle: 'dashed', borderColor: colors.input },
-  locationAction: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 12, marginLeft: 39 },
-  locationActionText: { color: colors.petrol, fontSize: 12, fontWeight: '700' },
+  profileButton: { 
+    width: 42, 
+    height: 42, 
+    borderRadius: 14, 
+    backgroundColor: colors.secondary, 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  
+  content: { paddingHorizontal: 18, paddingTop: 14 },
+  
+  // Hero
+  heroSection: { marginBottom: 22 },
+  heroTitle: { color: colors.ink, fontSize: 30, fontWeight: '800', letterSpacing: -0.6 },
+  heroSubtitle: { color: colors.mutedForeground, fontSize: 14, marginTop: 6 },
+
+  // Type toggle
+  typeToggle: {
+    flexDirection: 'row',
+    backgroundColor: colors.secondary,
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: 20,
+  },
+  typeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 13,
+  },
+  typeBtnActive: { backgroundColor: colors.petrol },
+  typeText: { fontSize: 13, fontWeight: '700', color: colors.mutedForeground },
+  typeTextActive: { color: colors.primaryForeground },
+
+  // Governorate chips
+  filterLabel: { color: colors.ink, fontSize: 13, fontWeight: '700', marginBottom: 10 },
+  govScroll: { flexDirection: 'row' },
+  govContent: { paddingRight: 18 },
+  govChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginRight: 8,
+  },
+  govChipActive: { backgroundColor: colors.goldSoft, borderColor: colors.gold },
+  govText: { fontSize: 13, fontWeight: '600', color: colors.mutedForeground },
+  govTextActive: { color: colors.gold, fontWeight: '800' },
+
+  // Empty state
+  emptyState: { alignItems: 'center', paddingTop: 60, gap: 12 },
+  emptyIcon: { 
+    width: 72, 
+    height: 72, 
+    borderRadius: 24, 
+    backgroundColor: colors.goldSoft, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginBottom: 8,
+  },
+  emptyTitle: { color: colors.ink, fontSize: 18, fontWeight: '800' },
+  emptyText: { color: colors.mutedForeground, fontSize: 13, textAlign: 'center', maxWidth: 260 },
+
+  // Trip card
+  tripCard: { 
+    backgroundColor: colors.card, 
+    borderRadius: 22, 
+    borderWidth: 1, 
+    borderColor: colors.border, 
+    padding: 16,
+    marginBottom: 14,
+  },
+  
+  // Driver row
+  driverRow: { flexDirection: 'row', alignItems: 'center' },
+  driverAvatar: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 15, 
+    backgroundColor: colors.petrol, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginRight: 12,
+  },
+  driverAvatarText: { color: colors.gold, fontSize: 14, fontWeight: '800' },
+  driverInfo: { flex: 1 },
+  driverName: { color: colors.ink, fontSize: 14, fontWeight: '800' },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 },
+  ratingText: { color: colors.mutedForeground, fontSize: 11, fontWeight: '800' },
+  
+  bookBtn: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 4, 
+    backgroundColor: colors.gold, 
+    paddingHorizontal: 14, 
+    paddingVertical: 8, 
+    borderRadius: 12,
+  },
+  bookBtnText: { color: colors.primaryForeground, fontSize: 13, fontWeight: '800' },
+
+  // Route row
+  tripRouteRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14 },
+  tripRouteIcon: { 
+    width: 34, 
+    height: 34, 
+    borderRadius: 11, 
+    backgroundColor: colors.goldSoft, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginRight: 10,
+  },
+  tripRouteText: { color: colors.ink, fontSize: 13, fontWeight: '700', flex: 1 },
+  
+  // Metrics
+  metricsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border },
+  metricChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.mint, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
+  metricText: { color: colors.petrol, fontSize: 12, fontWeight: '700' },
+  fareChip: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+  fareAmount: { color: colors.gold, fontSize: 20, fontWeight: '800' },
+  fareCurrency: { color: colors.mutedForeground, fontSize: 11, fontWeight: '600' },
+
+  // Booking confirmation
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  iconButton: { 
+    width: 42, 
+    height: 42, 
+    borderRadius: 14, 
+    backgroundColor: colors.card, 
+    borderWidth: 1, 
+    borderColor: colors.border, 
+    alignItems: 'center', 
+    justifyContent: 'center',
+  },
+  topBarTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' },
+  confirmSubtitle: { color: colors.mutedForeground, fontSize: 14, marginBottom: 20 },
+  
+  confirmCard: { backgroundColor: colors.card, borderRadius: 22, borderWidth: 1, borderColor: colors.border, padding: 18 },
+  confirmRouteRow: { flexDirection: 'row', alignItems: 'center' },
+  confirmRouteIcon: { 
+    width: 40, 
+    height: 40, 
+    borderRadius: 13, 
+    backgroundColor: colors.goldSoft, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginRight: 12,
+  },
+  confirmRouteText: { color: colors.ink, fontSize: 15, fontWeight: '700', flex: 1 },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: 18 },
-  seatHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  seatTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' },
-  seatSubtitle: { color: colors.mutedForeground, fontSize: 12, marginTop: 4 },
-  seatIcon: { width: 34, height: 34, borderRadius: 12, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
-  seatPicker: { flexDirection: 'row', gap: 8, marginTop: 14 },
-  seatOption: { flex: 1, minHeight: 58, borderRadius: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
-  seatOptionSelected: { backgroundColor: colors.petrol, borderColor: colors.petrol },
-  seatNumber: { color: colors.ink, fontSize: 19, fontWeight: '800' },
+  
+  seatPickerLabel: { color: colors.ink, fontSize: 13, fontWeight: '700', marginBottom: 12 },
+  seatPicker: { flexDirection: 'row', gap: 10, marginBottom: 18 },
+  seatOption: { 
+    flex: 1, 
+    minHeight: 52, 
+    borderRadius: 14, 
+    borderWidth: 2, 
+    borderColor: colors.border, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    backgroundColor: colors.background,
+  },
+  seatOptionSelected: { backgroundColor: colors.gold, borderColor: colors.gold },
+  seatNumber: { color: colors.ink, fontSize: 18, fontWeight: '800' },
   seatNumberSelected: { color: colors.primaryForeground },
-  seatWord: { color: colors.mutedForeground, fontSize: 9, marginTop: 1, fontWeight: '600' },
-  seatWordSelected: { color: '#ffffff' },
-  primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 54, borderRadius: 15, backgroundColor: colors.primary, marginTop: 16 },
-  primaryButtonText: { color: colors.primaryForeground, fontSize: 15, fontWeight: '800' },
-  secondaryButton: { alignItems: 'center', paddingVertical: 15 },
-  secondaryButtonText: { color: colors.petrol, fontSize: 14, fontWeight: '700' },
-  promiseRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 15, paddingHorizontal: 4 },
-  promise: { alignItems: 'center', gap: 5, flex: 1 },
-  promiseText: { color: colors.mutedForeground, fontSize: 9, fontWeight: '600', textAlign: 'center' },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 28, marginBottom: 11 },
-  sectionTitle: { color: colors.ink, fontSize: 17, fontWeight: '800' },
-  sectionAction: { color: colors.petrol, fontSize: 12, fontWeight: '800' },
-  recentCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 17, padding: 13, borderWidth: 1, borderColor: colors.border },
-  recentRouteIcon: { width: 38, height: 38, borderRadius: 13, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center', marginRight: 11 },
-  recentCopy: { flex: 1 },
-  recentRoute: { color: colors.ink, fontSize: 13, fontWeight: '700' },
-  recentMeta: { color: colors.mutedForeground, fontSize: 11, marginTop: 4 },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 26 },
-  iconButton: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  topBarTitle: { color: colors.ink, fontSize: 15, fontWeight: '800' },
-  topBarSpacer: { width: 40 },
-  routePill: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: colors.mint, borderRadius: 20, paddingVertical: 8, paddingHorizontal: 11 },
-  routePillDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.gold, marginRight: 7 },
-  routePillText: { color: colors.petrol, fontSize: 11, fontWeight: '800' },
-  routePillSeats: { color: colors.mintStrong, fontSize: 11, fontWeight: '800', marginLeft: 8, paddingLeft: 8, borderLeftWidth: 1, borderLeftColor: colors.input },
-  pageTitle: { color: colors.ink, fontSize: 29, lineHeight: 33, fontWeight: '800', letterSpacing: -0.6, marginTop: 20 },
-  pageSubtitle: { color: colors.mutedForeground, fontSize: 13, lineHeight: 19, marginTop: 7, marginBottom: 18 },
-  captainCard: { backgroundColor: colors.card, borderRadius: 22, borderWidth: 1, borderColor: colors.border, padding: 16 },
-  pressed: { opacity: 0.82 },
-  captainHeader: { flexDirection: 'row', alignItems: 'center' },
-  avatar: { width: 48, height: 48, borderRadius: 17, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center', marginRight: 11 },
-  avatarText: { color: colors.petrolDark, fontSize: 16, fontWeight: '800' },
-  captainNameBlock: { flex: 1 },
-  captainName: { color: colors.ink, fontSize: 15, fontWeight: '800' },
-  ratingLine: { flexDirection: 'row', alignItems: 'center', marginTop: 5, gap: 5 },
-  ratingText: { color: colors.ink, fontSize: 11, fontWeight: '800' },
-  tripCount: { color: colors.mutedForeground, fontSize: 11 },
-  metricsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 17, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border },
-  metric: { alignItems: 'center', minWidth: 76 },
-  metricLabel: { color: colors.mutedForeground, fontSize: 9, marginTop: 5 },
-  metricValue: { color: colors.ink, fontSize: 12, fontWeight: '800', marginTop: 3 },
-  fareBand: { backgroundColor: colors.petrolDark, borderRadius: 15, padding: 13, marginTop: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  fareLabel: { color: '#dce4ee', fontSize: 11, fontWeight: '700' },
-  fareNote: { color: '#aebbd0', fontSize: 10, marginTop: 3 },
-  fareAmount: { color: colors.gold, fontSize: 18, fontWeight: '800' },
-  infoCallout: { flexDirection: 'row', gap: 9, backgroundColor: colors.secondary, borderRadius: 15, padding: 13, marginTop: 14 },
-  infoText: { flex: 1, color: colors.secondaryForeground, fontSize: 11, lineHeight: 16 },
-  confirmCard: { backgroundColor: colors.card, borderRadius: 22, borderWidth: 1, borderColor: colors.border, padding: 17 },
-  confirmRoute: { flexDirection: 'row' },
-  routeRail: { alignItems: 'center', width: 22, paddingTop: 4 },
-  routeDotFilled: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.petrol, borderWidth: 3, borderColor: colors.mint },
-  routeRailLine: { height: 32, borderLeftWidth: 1, borderStyle: 'dashed', borderColor: colors.input },
-  routeDotOutline: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.card, borderWidth: 2, borderColor: colors.gold },
-  confirmLocations: { flex: 1, marginLeft: 10 },
-  locationGap: { height: 12 },
-  confirmLine: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7 },
-  confirmLabel: { color: colors.mutedForeground, fontSize: 12 },
-  confirmValue: { color: colors.ink, fontSize: 12, fontWeight: '800', maxWidth: '62%', textAlign: 'right' },
-  confirmFare: { color: colors.petrol, fontSize: 15, fontWeight: '800' },
-  privacyNote: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 4, marginTop: 17 },
-  privacyText: { flex: 1, color: colors.mutedForeground, fontSize: 11, lineHeight: 16 },
+  
+  confirmSummary: { backgroundColor: colors.background, borderRadius: 14, padding: 14, marginTop: 4 },
+  confirmLine: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, alignItems: 'center' },
+  confirmLabel: { color: colors.mutedForeground, fontSize: 13 },
+  confirmValue: { color: colors.ink, fontSize: 14, fontWeight: '700' },
+  confirmDividerThin: { height: 1, backgroundColor: colors.border, marginVertical: 6 },
+  confirmTotalLabel: { color: colors.ink, fontSize: 14, fontWeight: '700' },
+  confirmTotalValue: { color: colors.gold, fontSize: 20, fontWeight: '800' },
+  
+  primaryButton: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: 10, 
+    minHeight: 56, 
+    borderRadius: 16, 
+    backgroundColor: colors.gold, 
+    marginTop: 24,
+  },
+  primaryButtonText: { color: colors.primaryForeground, fontSize: 16, fontWeight: '800' },
+  secondaryButton: { alignItems: 'center', paddingVertical: 16 },
+  secondaryButtonText: { color: colors.mutedForeground, fontSize: 14, fontWeight: '700' },
 });

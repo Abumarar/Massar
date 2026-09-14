@@ -16,6 +16,24 @@ router.post("/rides", async (req, res): Promise<void> => {
   const input = parsed.data;
   const id = `ride-${randomUUID()}`;
   
+  // Ensure driver exists (mock driver for testing)
+  const { driversTable } = require('@workspace/db');
+  const [existingDriver] = await db.select().from(driversTable).where(eq(driversTable.id, input.driverId));
+  if (!existingDriver) {
+    await db.insert(driversTable).values({
+      id: input.driverId,
+      fullName: "Test Driver",
+      phone: "+962700000000",
+      nationalIdLast4: "1234",
+      route: "Jerash -> Amman",
+      vehicleMakeModel: "Test Car",
+      vehicleColor: "White",
+      vehiclePlate: "1234",
+      vehicleSeats: 4,
+      status: "approved"
+    });
+  }
+
   await db.insert(ridesTable).values({
     id,
     driverId: input.driverId,
@@ -23,6 +41,8 @@ router.post("/rides", async (req, res): Promise<void> => {
     totalSeats: input.totalSeats,
     availableSeats: input.totalSeats,
     farePerSeat: input.farePerSeat,
+    type: input.type || "standard",
+    rentalHours: input.rentalHours || null,
     status: "open",
     departureTime: input.departureTime ? new Date(input.departureTime) : null,
   });

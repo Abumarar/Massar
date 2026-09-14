@@ -5,11 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { RideInputType } from './rideInputType';
 
 export interface RideInput {
   driverId: string;
   route: string;
   totalSeats: number;
   farePerSeat: number;
+  type?: RideInputType;
+  rentalHours?: number;
   departureTime?: Date;
 }

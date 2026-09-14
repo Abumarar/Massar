@@ -30,36 +30,14 @@ export default function ProfileScreen() {
             <Text style={styles.name}>Massar passenger</Text>
             <Text style={styles.phone}>{t('passengerMode')}</Text>
           </View>
-          <Feather name="edit-2" size={17} color={colors.mutedForeground} />
+          <Feather name="edit-2" size={17} color={colors.goldLight} />
         </View>
-
-        <Pressable onPress={() => router.push('/driver')} style={({ pressed }) => [styles.driverCard, pressed && { opacity: 0.82 }]}>
-          <View style={styles.driverIcon}>
-            <Feather name="truck" size={18} color={colors.gold} />
-          </View>
-          <View style={styles.driverCopy}>
-            <Text style={styles.driverTitle}>{isRTL ? 'انضم إلى مسار كسائق' : 'Drive with Massar'}</Text>
-            <Text style={styles.driverDescription}>{isRTL ? 'قدّم بياناتك ووثائق مركبتك للمراجعة.' : 'Submit your details and vehicle documents for review.'}</Text>
-          </View>
-          <Feather name="arrow-up-right" size={18} color={colors.gold} />
-        </Pressable>
-
-        <Pressable onPress={() => router.push('/driver-dashboard')} style={({ pressed }) => [styles.driverCard, { marginTop: 10, backgroundColor: colors.secondary }, pressed && { opacity: 0.82 }]}>
-          <View style={[styles.driverIcon, { backgroundColor: colors.background }]}>
-            <Feather name="grid" size={18} color={colors.petrol} />
-          </View>
-          <View style={styles.driverCopy}>
-            <Text style={[styles.driverTitle, { color: colors.petrol }]}>{isRTL ? 'لوحة تحكم السائق' : 'Driver Dashboard'}</Text>
-            <Text style={[styles.driverDescription, { color: colors.mutedForeground }]}>{isRTL ? 'عرض وقبول الرحلات المتاحة.' : 'View and accept available rides.'}</Text>
-          </View>
-          <Feather name="arrow-right" size={18} color={colors.petrol} />
-        </Pressable>
 
         <Text style={styles.sectionLabel}>{t('preferences')}</Text>
         <View style={styles.settingsCard}>
           <View style={[styles.languageRow, styles.settingBorder]}>
             <View style={styles.settingIcon}>
-              <Feather name="globe" size={16} color={colors.petrol} />
+              <Feather name="globe" size={16} color={colors.gold} />
             </View>
             <Text style={styles.settingLabel}>{t('language')}</Text>
             <View style={styles.languageToggle}>
@@ -194,7 +172,7 @@ function SettingRow({
   return (
     <View style={[styles.settingRow, !last && styles.settingBorder]}>
       <View style={styles.settingIcon}>
-        <Feather name={icon} size={16} color={colors.petrol} />
+        <Feather name={icon} size={16} color={colors.gold} />
       </View>
       <Text style={styles.settingLabel}>{label}</Text>
       <Text style={styles.settingValue}>{value}</Text>
@@ -207,40 +185,35 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
   StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     content: { paddingHorizontal: 18, paddingTop: 20 },
-    eyebrow: { color: colors.petrol, fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
-    title: { color: colors.ink, fontSize: 30, fontWeight: '700', marginTop: 7, letterSpacing: -0.6 },
-    profileCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.petrolDark, borderRadius: 22, padding: 17, marginTop: 25 },
+    eyebrow: { color: colors.gold, fontSize: 10, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
+    title: { color: colors.ink, fontSize: 30, fontWeight: '800', marginTop: 7, letterSpacing: -0.6 },
+    profileCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.petrol, borderRadius: 22, padding: 17, marginTop: 25 },
     avatar: { width: 52, height: 52, borderRadius: 18, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    avatarText: { color: colors.petrolDark, fontSize: 17, fontWeight: '800' },
+    avatarText: { color: '#FFFFFF', fontSize: 17, fontWeight: '800' },
     profileCopy: { flex: 1 },
-    name: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
-    phone: { color: '#cbd4e3', fontSize: 11, marginTop: 5 },
-    driverCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.petrol, borderRadius: 20, padding: 15, marginTop: 14 },
-    driverIcon: { width: 38, height: 38, borderRadius: 13, backgroundColor: '#2a354b', alignItems: 'center', justifyContent: 'center', marginRight: 11 },
-    driverCopy: { flex: 1 },
-    driverTitle: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
-    driverDescription: { color: '#cbd4e3', fontSize: 11, lineHeight: 16, marginTop: 3, paddingRight: 8 },
-    sectionLabel: { color: colors.mutedForeground, fontSize: 11, fontWeight: '700', marginTop: 28, marginBottom: 10, letterSpacing: 0.3 },
+    name: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+    phone: { color: '#B0BAC9', fontSize: 11, marginTop: 5 },
+    sectionLabel: { color: colors.mutedForeground, fontSize: 11, fontWeight: '700', marginTop: 28, marginBottom: 10, letterSpacing: 0.3, textTransform: 'uppercase' },
     settingsCard: { backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14 },
     settingRow: { flexDirection: 'row', alignItems: 'center', minHeight: 61 },
     languageRow: { flexDirection: 'row', alignItems: 'center', minHeight: 61 },
     settingBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
-    settingIcon: { width: 32, height: 32, borderRadius: 11, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center', marginRight: 11 },
+    settingIcon: { width: 32, height: 32, borderRadius: 11, backgroundColor: colors.goldSoft, alignItems: 'center', justifyContent: 'center', marginRight: 11 },
     settingLabel: { color: colors.ink, fontSize: 13, fontWeight: '600', flex: 1 },
     settingValue: { color: colors.mutedForeground, fontSize: 11, marginRight: 8 },
     languageToggle: { flexDirection: 'row', backgroundColor: colors.secondary, borderRadius: 10, padding: 3, gap: 2 },
     languageOption: { minWidth: 31, height: 27, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-    languageOptionActive: { backgroundColor: colors.petrol },
+    languageOptionActive: { backgroundColor: colors.gold },
     languageOptionText: { color: colors.mutedForeground, fontSize: 10, fontWeight: '800' },
-    languageOptionTextActive: { color: colors.primaryForeground },
-    brandCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 20, backgroundColor: colors.secondary, marginTop: 18 },
-    brandMark: { width: 40, height: 40, borderRadius: 14, marginRight: 12 },
+    languageOptionTextActive: { color: '#FFFFFF' },
+    brandCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 20, backgroundColor: colors.petrol, marginTop: 18 },
+    brandMark: { width: 42, height: 42, borderRadius: 14, marginRight: 12 },
     brandCopy: { flex: 1 },
-    brandTitle: { color: colors.petrol, fontSize: 14, fontWeight: '800' },
-    brandText: { color: colors.mutedForeground, fontSize: 11, marginTop: 4 },
+    brandTitle: { color: colors.gold, fontSize: 14, fontWeight: '800' },
+    brandText: { color: '#B0BAC9', fontSize: 11, marginTop: 4 },
     pricingCard: { backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 15 },
     pricingHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
-    pricingIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.petrolDark, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+    pricingIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.goldSoft, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
     pricingCopy: { flex: 1 },
     pricingTitle: { color: colors.ink, fontSize: 14, fontWeight: '800' },
     pricingDescription: { color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 3 },
@@ -252,8 +225,8 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
     currencyLabel: { color: colors.mutedForeground, fontSize: 10, fontWeight: '800' },
     previewTitle: { color: colors.ink, fontSize: 11, fontWeight: '800', marginTop: 3, marginBottom: 8 },
     previewGrid: { flexDirection: 'row', gap: 6 },
-    previewItem: { flex: 1, backgroundColor: colors.secondary, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 4, alignItems: 'center' },
+    previewItem: { flex: 1, backgroundColor: colors.goldSoft, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 4, alignItems: 'center' },
     previewSeats: { color: colors.mutedForeground, fontSize: 9, textAlign: 'center' },
-    previewAmount: { color: colors.petrol, fontSize: 11, fontWeight: '800', marginTop: 3 },
+    previewAmount: { color: colors.gold, fontSize: 11, fontWeight: '800', marginTop: 3 },
     pricingRule: { color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 10 },
   });

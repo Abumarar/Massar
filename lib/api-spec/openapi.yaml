@@ -308,7 +308,7 @@ components:
       enum: [open, full, completed, cancelled]
     Ride:
       type: object
-      required: [id, driverId, route, totalSeats, availableSeats, farePerSeat, status, createdAt]
+      required: [id, driverId, route, totalSeats, availableSeats, farePerSeat, type, status, createdAt]
       properties:
         id:
           type: string
@@ -322,6 +322,11 @@ components:
           type: number
         farePerSeat:
           type: number
+        type:
+          type: string
+          enum: [standard, hourly]
+        rentalHours:
+          type: ["number", "null"]
         status:
           $ref: "#/components/schemas/RideStatus"
         departureTime:
@@ -344,6 +349,11 @@ components:
         totalSeats:
           type: number
         farePerSeat:
+          type: number
+        type:
+          type: string
+          enum: [standard, hourly]
+        rentalHours:
           type: number
         departureTime:
           type: string

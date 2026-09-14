@@ -50,18 +50,18 @@ export default function TripsScreen() {
             <Text style={styles.title}>{t('yourRides')}</Text>
           </View>
           <View style={styles.headerIcon}>
-            <Feather name="bookmark" size={19} color={colors.petrol} />
+            <Feather name="bookmark" size={19} color={colors.gold} />
           </View>
         </View>
 
         {loading ? (
           <View style={styles.emptyState}>
-            <ActivityIndicator color={colors.petrol} />
+            <ActivityIndicator color={colors.gold} />
           </View>
         ) : trips.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIcon}>
-              <Feather name="map" size={24} color={colors.petrol} />
+              <Feather name="map" size={24} color={colors.gold} />
             </View>
             <Text style={styles.emptyTitle}>{t('nextRoute')}</Text>
             <Text style={styles.emptyText}>{t('nextRouteDescription')}</Text>
@@ -78,7 +78,7 @@ export default function TripsScreen() {
               </View>
               <View style={styles.routeRow}>
                 <View style={styles.routeIcon}>
-                  <Feather name="arrow-up-right" size={19} color={colors.petrol} />
+                  <Feather name="navigation" size={19} color={colors.gold} />
                 </View>
                 <View style={styles.routeCopy}>
                   <Text style={styles.routeText}>{trip.route}</Text>
@@ -103,25 +103,25 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
     screen: { flex: 1, backgroundColor: colors.background },
     content: { paddingHorizontal: 18, paddingTop: 20 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-    eyebrow: { color: colors.petrol, fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
-    title: { color: colors.ink, fontSize: 30, fontWeight: '700', marginTop: 7, letterSpacing: -0.6 },
-    headerIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.mint },
+    eyebrow: { color: colors.gold, fontSize: 10, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' },
+    title: { color: colors.ink, fontSize: 30, fontWeight: '800', marginTop: 7, letterSpacing: -0.6 },
+    headerIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.goldSoft },
     emptyState: { alignItems: 'center', paddingHorizontal: 32, paddingTop: 110 },
-    emptyIcon: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.mint, marginBottom: 17 },
-    emptyTitle: { color: colors.ink, fontSize: 18, fontWeight: '700', textAlign: 'center' },
+    emptyIcon: { width: 72, height: 72, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.goldSoft, marginBottom: 17 },
+    emptyTitle: { color: colors.ink, fontSize: 18, fontWeight: '800', textAlign: 'center' },
     emptyText: { color: colors.mutedForeground, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 8 },
     tripCard: { backgroundColor: colors.card, borderRadius: 21, borderWidth: 1, borderColor: colors.border, padding: 16, marginBottom: 13 },
     statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    statusPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.mint, borderRadius: 20, paddingHorizontal: 9, paddingVertical: 6 },
-    statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.mintStrong, marginRight: 6 },
-    statusText: { color: colors.petrol, fontSize: 10, fontWeight: '700' },
+    statusPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.successSoft, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6 },
+    statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success, marginRight: 6 },
+    statusText: { color: colors.success, fontSize: 10, fontWeight: '700' },
     dateText: { color: colors.mutedForeground, fontSize: 10 },
     routeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 18 },
-    routeIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center', marginRight: 11 },
+    routeIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: colors.goldSoft, alignItems: 'center', justifyContent: 'center', marginRight: 11 },
     routeCopy: { flex: 1 },
     routeText: { color: colors.ink, fontSize: 14, fontWeight: '700' },
     routeMeta: { color: colors.mutedForeground, fontSize: 11, marginTop: 5 },
     tripFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, paddingTop: 13, borderTopWidth: 1, borderTopColor: colors.border },
     footerText: { color: colors.mutedForeground, fontSize: 11 },
-    footerFare: { color: colors.petrol, fontSize: 13, fontWeight: '800' },
+    footerFare: { color: colors.gold, fontSize: 14, fontWeight: '800' },
   });

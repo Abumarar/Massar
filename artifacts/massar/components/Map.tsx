@@ -3,7 +3,7 @@ import MapView, { Marker as RNMarker, Polyline as RNPolyline } from 'react-nativ
 import { StyleSheet } from 'react-native';
 
 export function Map({ children, ...props }: any) {
-  return <MapView style={StyleSheet.absoluteFill} {...props}>{children}</MapView>;
+  return <MapView provider="google" style={StyleSheet.absoluteFill} {...props}>{children}</MapView>;
 }
 
 export function Marker(props: any) {

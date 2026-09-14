@@ -33,4 +33,6 @@ export * from './operationsRideStatus';
 export * from './operationsSummary';
 export * from './ride';
 export * from './rideInput';
+export * from './rideInputType';
 export * from './rideStatus';
+export * from './rideType';

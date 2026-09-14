@@ -19,6 +19,14 @@ export const RideStatus = {
   cancelled: 'cancelled',
 } as const;
 
+export type RideType = typeof RideType[keyof typeof RideType];
+
+
+export const RideType = {
+  standard: 'standard',
+  hourly: 'hourly',
+} as const;
+
 export interface Ride {
   id: string;
   driverId: string;
@@ -26,6 +34,9 @@ export interface Ride {
   totalSeats: number;
   availableSeats: number;
   farePerSeat: number;
+  type: RideType;
+  /** @nullable */
+  rentalHours?: number | null;
   status: RideStatus;
   /** @nullable */
   departureTime?: string | null;
@@ -33,11 +44,21 @@ export interface Ride {
   updatedAt?: string;
 }
 
+export type RideInputType = typeof RideInputType[keyof typeof RideInputType];
+
+
+export const RideInputType = {
+  standard: 'standard',
+  hourly: 'hourly',
+} as const;
+
 export interface RideInput {
   driverId: string;
   route: string;
   totalSeats: number;
   farePerSeat: number;
+  type?: RideInputType;
+  rentalHours?: number;
   departureTime?: string;
 }
 

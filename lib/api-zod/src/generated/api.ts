@@ -172,6 +172,8 @@ export const ListRidesResponseItem = zod.object({
   "totalSeats": zod.number(),
   "availableSeats": zod.number(),
   "farePerSeat": zod.number(),
+  "type": zod.enum(['standard', 'hourly']),
+  "rentalHours": zod.number().nullish(),
   "status": zod.enum(['open', 'full', 'completed', 'cancelled']),
   "departureTime": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
@@ -188,6 +190,8 @@ export const CreateRideBody = zod.object({
   "route": zod.string(),
   "totalSeats": zod.number(),
   "farePerSeat": zod.number(),
+  "type": zod.enum(['standard', 'hourly']).optional(),
+  "rentalHours": zod.number().optional(),
   "departureTime": zod.coerce.date().optional()
 })
 
@@ -198,6 +202,8 @@ export const CreateRideResponse = zod.object({
   "totalSeats": zod.number(),
   "availableSeats": zod.number(),
   "farePerSeat": zod.number(),
+  "type": zod.enum(['standard', 'hourly']),
+  "rentalHours": zod.number().nullish(),
   "status": zod.enum(['open', 'full', 'completed', 'cancelled']),
   "departureTime": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
@@ -219,6 +225,8 @@ export const GetRideResponse = zod.object({
   "totalSeats": zod.number(),
   "availableSeats": zod.number(),
   "farePerSeat": zod.number(),
+  "type": zod.enum(['standard', 'hourly']),
+  "rentalHours": zod.number().nullish(),
   "status": zod.enum(['open', 'full', 'completed', 'cancelled']),
   "departureTime": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),

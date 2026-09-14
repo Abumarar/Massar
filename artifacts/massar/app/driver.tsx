@@ -182,7 +182,7 @@ export default function DriverOnboardingScreen() {
           <View style={styles.successIcon}><Feather name="check" size={30} color={colors.primaryForeground} /></View>
           <Text style={styles.title}>{copy.submittedTitle}</Text>
           <Text style={styles.body}>{copy.submittedDescription}</Text>
-          <Pressable onPress={() => router.back()} style={styles.primaryButton}><Text style={styles.primaryButtonText}>{copy.done}</Text><Feather name="arrow-right" size={18} color={colors.primaryForeground} /></Pressable>
+          <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/')} style={styles.primaryButton}><Text style={styles.primaryButtonText}>{copy.done}</Text><Feather name="arrow-right" size={18} color={colors.primaryForeground} /></Pressable>
         </View>
       </View>
     );
@@ -192,7 +192,7 @@ export default function DriverOnboardingScreen() {
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: bottomInset + 28 }]} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Pressable onPress={() => (step === 'intro' ? router.back() : setStep(step === 'documents' ? 'profile' : 'intro'))} style={styles.iconButton}>
+          <Pressable onPress={() => (step === 'intro' ? (router.canGoBack() ? router.back() : router.replace('/')) : setStep(step === 'documents' ? 'profile' : 'intro'))} style={styles.iconButton}>
             <Feather name={arabic ? 'arrow-right' : 'arrow-left'} size={20} color={colors.ink} />
           </Pressable>
           <Text style={styles.headerLabel}>{copy.eyebrow}</Text>

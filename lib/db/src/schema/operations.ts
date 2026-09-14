@@ -62,6 +62,8 @@ export const ridesTable = pgTable("massar_rides", {
   totalSeats: integer("total_seats").notNull(),
   availableSeats: integer("available_seats").notNull(),
   farePerSeat: real("fare_per_seat").notNull(),
+  type: text("type").notNull().default("standard"), // standard, hourly
+  rentalHours: integer("rental_hours"),
   status: text("status").notNull().default("open"), // open, full, completed, cancelled
   departureTime: timestamp("departure_time", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
