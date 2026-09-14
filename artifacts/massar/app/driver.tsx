@@ -15,14 +15,14 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCreateDriverApplicationWithDocuments, type DocumentType, type DriverDocumentInput } from '@workspace/api-client-react';
+import { useSetupCaptainProfile } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
 
 type Step = 'intro' | 'profile' | 'documents' | 'submitted';
 
 type DocumentItem = {
-  type: DocumentType;
+  type: string;
   label: string;
   description: string;
   required: boolean;
@@ -46,7 +46,7 @@ export default function DriverOnboardingScreen() {
   const { isRTL } = useLanguage();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const submitApplication = useCreateDriverApplicationWithDocuments();
+  const submitApplication = useSetupCaptainProfile();
   const [step, setStep] = useState<Step>('intro');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -120,7 +120,7 @@ export default function DriverOnboardingScreen() {
         uploadError: 'We could not attach that document. Try again.',
       };
 
-  const pickDocument = async (type: DocumentType) => {
+  const pickDocument = async (type: string) => {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (permission.status !== 'granted') {
@@ -157,14 +157,10 @@ export default function DriverOnboardingScreen() {
       fullName: fullName.trim(),
       phone: phone.trim(),
       nationalIdLast4: nationalIdLast4.trim(),
-      route: 'Jerash → Amman',
-      vehicle: { makeModel: makeModel.trim(), color: color.trim(), plate: plate.trim(), seats: Number(seats) || 4 },
-      documents: documents.map((document): DriverDocumentInput => ({
-        type: document.type,
-        fileName: document.fileName ?? `${document.type}.jpg`,
-        fileUri: document.fileUri ?? null,
-        expiresAt: null,
-      })),
+      vehicleMakeModel: makeModel.trim(),
+      vehicleColor: color.trim(),
+      vehiclePlate: plate.trim(),
+      totalSeats: Number(seats) || 4,
     };
     try {
       await submitApplication.mutateAsync({ data: payload });

@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
-import { useListRides, useBookRide, Ride } from '@workspace/api-client-react';
+import { useSearchMatchingCaptains, useCreateRideRequest, MatchingCaptain } from '@workspace/api-client-react';
 import { JORDAN_GOVERNORATES } from '@/constants/governorates';
 
 type StoredTrip = {
@@ -53,15 +53,15 @@ export default function HomeScreen() {
   const [selectedGovernorate, setSelectedGovernorate] = useState<string>(JORDAN_GOVERNORATES[0]);
   
   // Booking flow state
-  const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
+  const [selectedRide, setSelectedRide] = useState<MatchingCaptain | null>(null);
   const [seatsToBook, setSeatsToBook] = useState(1);
 
   useEffect(() => {
     getPassengerId().then(setPassengerId);
   }, []);
 
-  const { data: rides, isLoading } = useListRides({ status: 'open' });
-  const bookRideMutation = useBookRide();
+  const { data: rides, isLoading } = useSearchMatchingCaptains({ routeId: 'amman-jerash', pickupLat: 32, pickupLng: 35, destLat: 32.1, destLng: 35.1, seats: 1 });
+  const bookRideMutation = useCreateRideRequest();
 
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
 
@@ -69,20 +69,24 @@ export default function HomeScreen() {
     if (!passengerId || !selectedRide) return;
     try {
       const booking = await bookRideMutation.mutateAsync({
-        rideId: selectedRide.id,
         data: {
-          passengerId,
-          seatsBooked: seatsToBook,
+          captainId: selectedRide.captainId,
+          routeId: 'amman-jerash',
+          pickupLat: 32,
+          pickupLng: 35,
+          destLat: 32.1,
+          destLng: 35.1,
+          seats: seatsToBook,
         }
       });
       
       const trip: StoredTrip = {
         id: booking.id,
-        captain: `Driver ${selectedRide.driverId.slice(-4)}`,
+        captain: `Driver ${selectedRide.captainId.slice(-4)}`,
         vehicle: 'Car',
-        route: selectedRide.route,
+        route: selectedRide.vehicleMakeModel || 'Unknown',
         seats: seatsToBook,
-        fare: booking.totalFare,
+        fare: booking.estimatedFare,
         status: isRTL ? 'مؤكد' : 'Confirmed',
         createdAt: booking.createdAt,
       };
@@ -141,8 +145,8 @@ export default function HomeScreen() {
 
   // Confirmation screen overlay
   if (selectedRide) {
-    const isHourly = selectedRide.type === 'hourly';
-    const totalFare = selectedRide.farePerSeat * seatsToBook;
+    const isHourly = false;
+    const totalFare = selectedRide.estimatedFare;
     
     return (
       <View style={styles.screen}>
@@ -163,7 +167,7 @@ export default function HomeScreen() {
                 <Feather name={isHourly ? "clock" : "navigation"} size={18} color={colors.gold} />
               </View>
               <Text style={styles.confirmRouteText}>
-                {isHourly ? `${selectedRide.route} · ${selectedRide.rentalHours} ${copy.hours}` : selectedRide.route}
+                {isHourly ? `${selectedRide.vehicleMakeModel} · hours` : selectedRide.vehicleMakeModel}
               </Text>
             </View>
             
@@ -194,7 +198,7 @@ export default function HomeScreen() {
             <View style={styles.confirmSummary}>
               <View style={styles.confirmLine}>
                 <Text style={styles.confirmLabel}>{isRTL ? 'سعر المقعد' : 'Price per seat'}</Text>
-                <Text style={styles.confirmValue}>{selectedRide.farePerSeat.toFixed(2)} JOD</Text>
+                <Text style={styles.confirmValue}>{selectedRide.estimatedFare.toFixed(2)} JOD</Text>
               </View>
               <View style={styles.confirmLine}>
                 <Text style={styles.confirmLabel}>{isRTL ? 'عدد المقاعد' : 'Seats'}</Text>
@@ -221,13 +225,7 @@ export default function HomeScreen() {
   }
 
   // Filter rides based on type and governorate
-  const filteredRides = Array.isArray(rides) ? rides.filter(ride => {
-    const matchType = (ride.type || 'standard') === activeTab;
-    const matchGov = activeTab === 'hourly' 
-      ? ride.route === selectedGovernorate
-      : ride.route.includes(selectedGovernorate);
-    return matchType && matchGov;
-  }) : [];
+  const filteredRides = Array.isArray(rides) ? rides : [];
 
   return (
     <View style={styles.screen}>
@@ -307,7 +305,7 @@ export default function HomeScreen() {
         {/* Trip cards */}
         {filteredRides.map(ride => (
           <Pressable 
-            key={ride.id} 
+            key={ride.captainId} 
             onPress={() => {
               void Haptics.selectionAsync();
               setSelectedRide(ride);
@@ -318,10 +316,10 @@ export default function HomeScreen() {
             {/* Driver info header */}
             <View style={styles.driverRow}>
               <View style={styles.driverAvatar}>
-                <Text style={styles.driverAvatarText}>{ride.driverId.slice(-2).toUpperCase()}</Text>
+                <Text style={styles.driverAvatarText}>{ride.captainId.slice(-2).toUpperCase()}</Text>
               </View>
               <View style={styles.driverInfo}>
-                <Text style={styles.driverName}>Driver {ride.driverId.slice(-4)}</Text>
+                <Text style={styles.driverName}>Driver {ride.captainId.slice(-4)}</Text>
                 <View style={styles.ratingRow}>
                   <Feather name="star" size={12} color={colors.gold} />
                   <Text style={styles.ratingText}>4.9</Text>
@@ -339,7 +337,7 @@ export default function HomeScreen() {
                 <Feather name={activeTab === 'hourly' ? "clock" : "navigation"} size={14} color={colors.gold} />
               </View>
               <Text style={styles.tripRouteText}>
-                {activeTab === 'hourly' ? `${ride.route} · ${ride.rentalHours} ${copy.hours}` : ride.route}
+                {ride.vehicleMakeModel}
               </Text>
             </View>
 
@@ -348,11 +346,11 @@ export default function HomeScreen() {
               {activeTab === 'standard' && (
                 <View style={styles.metricChip}>
                   <Feather name="users" size={13} color={colors.petrol} />
-                  <Text style={styles.metricText}>{ride.availableSeats}/{ride.totalSeats} {copy.available}</Text>
+                  <Text style={styles.metricText}>{ride.availableSeats} {copy.available}</Text>
                 </View>
               )}
               <View style={styles.fareChip}>
-                <Text style={styles.fareAmount}>{ride.farePerSeat.toFixed(2)}</Text>
+                <Text style={styles.fareAmount}>{ride.estimatedFare.toFixed(2)}</Text>
                 <Text style={styles.fareCurrency}>{activeTab === 'hourly' ? copy.pricePerHour : copy.perSeat}</Text>
               </View>
             </View>

@@ -5,7 +5,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { useListRides, useCreateRide } from '@workspace/api-client-react';
+import { useListRideRequests, useUpdateCaptainStatus } from '@workspace/api-client-react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { JORDAN_GOVERNORATES } from '@/constants/governorates';
 
@@ -38,26 +38,22 @@ export default function DriverDashboardScreen() {
     });
   }, []);
 
-  const { data: rides, isLoading, refetch } = useListRides(
-    { driverId: driverId ?? undefined },
-    { query: { enabled: !!driverId } as any }
+  const { data: rides, isLoading, refetch } = useListRideRequests(
+    { role: 'captain' }
   );
-  const createRideMutation = useCreateRide();
+  const updateStatusMutation = useUpdateCaptainStatus();
 
   const handleCreateRide = async () => {
     if (!driverId) return;
     try {
-      await createRideMutation.mutateAsync({
+      await updateStatusMutation.mutateAsync({
         data: {
-          driverId,
-          route: tripType === 'standard' ? route : selectedGovernorate,
-          totalSeats: parseInt(totalSeats, 10) || 4,
-          farePerSeat: parseFloat(farePerSeat) || 2.5,
-          type: tripType,
-          rentalHours: tripType === 'hourly' ? parseInt(rentalHours, 10) : undefined,
+          isOnline: true,
+          routeId: tripType === 'standard' ? route : selectedGovernorate,
+          pickupRadiusKm: 10,
         }
       });
-      Alert.alert(isRTL ? "تم إنشاء الرحلة" : "Ride Created", isRTL ? "تمت إضافة الرحلة بنجاح" : "Your ride is now available for passengers.");
+      Alert.alert(isRTL ? "تم تغيير الحالة" : "Status Updated", isRTL ? "أنت الآن متاح للطلبات" : "You are now online.");
       refetch();
     } catch (e) {
       Alert.alert("Error", "Could not create ride");
@@ -185,10 +181,10 @@ export default function DriverDashboardScreen() {
           
           <Pressable 
             onPress={handleCreateRide} 
-            disabled={createRideMutation.isPending}
+            disabled={updateStatusMutation.isPending}
             style={({ pressed }) => [
               styles.primaryBtn, 
-              (createRideMutation.isPending || pressed) && { opacity: 0.7 }
+              (updateStatusMutation.isPending || pressed) && { opacity: 0.7 }
             ]}
           >
             <Text style={styles.primaryBtnText}>{copy.publish}</Text>
@@ -215,25 +211,23 @@ export default function DriverDashboardScreen() {
             <View key={ride.id} style={styles.rideCard}>
               <View style={styles.rideTop}>
                 <View style={styles.routePill}>
-                  <Feather name={ride.type === 'hourly' ? 'clock' : 'map-pin'} size={12} color={colors.petrol} style={{ marginRight: 6 }} />
-                  <Text style={styles.routeText}>{ride.type === 'hourly' ? `${ride.route} (${ride.rentalHours} ${copy.hours})` : ride.route}</Text>
+                  <Feather name={'map-pin'} size={12} color={colors.petrol} style={{ marginRight: 6 }} />
+                  <Text style={styles.routeText}>{ride.routeId}</Text>
                 </View>
-                <View style={[styles.statusBadge, ride.status === 'full' && styles.statusBadgeFull]}>
-                  <Text style={[styles.statusText, ride.status === 'full' && styles.statusTextFull]}>
-                    {ride.status === 'full' ? copy.statusFull : copy.statusOpen}
+                <View style={[styles.statusBadge, ride.status !== 'requested' && styles.statusBadgeFull]}>
+                  <Text style={[styles.statusText, ride.status !== 'requested' && styles.statusTextFull]}>
+                    {ride.status}
                   </Text>
                 </View>
               </View>
               <View style={styles.rideDetails}>
-                {ride.type !== 'hourly' && (
-                  <View style={styles.detailItem}>
-                    <Feather name="users" size={16} color={colors.mutedForeground} />
-                    <Text style={styles.detailText}>{ride.availableSeats}/{ride.totalSeats} {copy.available}</Text>
-                  </View>
-                )}
+                <View style={styles.detailItem}>
+                  <Feather name="users" size={16} color={colors.mutedForeground} />
+                  <Text style={styles.detailText}>{ride.seatsRequested} {copy.available}</Text>
+                </View>
                 <View style={styles.detailItem}>
                   <Feather name="credit-card" size={16} color={colors.mutedForeground} />
-                  <Text style={styles.detailText}>{ride.farePerSeat.toFixed(2)} {ride.type === 'hourly' ? copy.pricePerHour : copy.fare}</Text>
+                  <Text style={styles.detailText}>{ride.estimatedFare.toFixed(2)} {copy.fare}</Text>
                 </View>
               </View>
               <Text style={styles.timeText}>
