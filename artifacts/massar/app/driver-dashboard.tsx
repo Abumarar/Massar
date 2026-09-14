@@ -22,7 +22,7 @@ export default function DriverDashboardScreen() {
   
   // Form state
   const [tripType, setTripType] = useState<'standard' | 'hourly'>('standard');
-  const [selectedGovernorate, setSelectedGovernorate] = useState(JORDAN_GOVERNORATES[0]);
+  const [selectedGovernorate, setSelectedGovernorate] = useState<string>(JORDAN_GOVERNORATES[0]);
   const [route, setRoute] = useState('Jerash -> Amman');
   const [totalSeats, setTotalSeats] = useState('4');
   const [farePerSeat, setFarePerSeat] = useState('2.5');

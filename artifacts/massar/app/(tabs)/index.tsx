@@ -50,7 +50,7 @@ export default function HomeScreen() {
   
   // Filtering state
   const [activeTab, setActiveTab] = useState<'standard' | 'hourly'>('standard');
-  const [selectedGovernorate, setSelectedGovernorate] = useState(JORDAN_GOVERNORATES[0]);
+  const [selectedGovernorate, setSelectedGovernorate] = useState<string>(JORDAN_GOVERNORATES[0]);
   
   // Booking flow state
   const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
