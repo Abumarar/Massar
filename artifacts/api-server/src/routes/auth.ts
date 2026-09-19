@@ -1,4 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
+import { validateRequest } from "../middlewares/validate";
+import { RegisterBody, LoginBody } from "@workspace/api-zod";
 import { db } from "@workspace/db";
 import { usersTable, captainsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -35,13 +37,10 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
   });
 };
 
-router.post("/auth/register", async (req, res) => {
+router.post("/auth/register", validateRequest({ body: RegisterBody }), async (req, res) => {
   try {
     const { phone, password, fullName, role } = req.body;
-    if (!phone || !password || !fullName || !role) {
-      res.status(400).json({ error: "Missing fields" });
-      return;
-    }
+
 
     const existingUser = await db.query.usersTable.findFirst({
       where: eq(usersTable.phone, phone),
@@ -75,14 +74,14 @@ router.post("/auth/register", async (req, res) => {
   }
 });
 
-router.post("/auth/login", async (req, res) => {
+router.post("/auth/login", validateRequest({ body: LoginBody }), async (req, res) => {
   try {
     const { phone, password } = req.body;
 
     const user = await db.query.usersTable.findFirst({
       where: eq(usersTable.phone, phone),
       with: {
-        captainProfile: true, // we need to configure relations in db schema later
+        captainProfile: true,
       },
     });
 
@@ -106,7 +105,7 @@ router.post("/auth/login", async (req, res) => {
         phone: user.phone,
         fullName: user.fullName,
         role: user.role,
-        captainProfile: (user as any).captainProfile?.[0], // simple hack for now
+        captainProfile: user.captainProfile || null,
       },
     });
   } catch (error) {
@@ -124,7 +123,7 @@ router.get("/auth/me", authenticateToken, async (req: AuthRequest, res) => {
     const user = await db.query.usersTable.findFirst({
       where: eq(usersTable.id, req.user.id),
       with: {
-        captainProfile: true, // We must add relations to schema.ts!
+        captainProfile: true,
       },
     });
 
@@ -138,7 +137,7 @@ router.get("/auth/me", authenticateToken, async (req: AuthRequest, res) => {
       phone: user.phone,
       fullName: user.fullName,
       role: user.role,
-      captainProfile: (user as any).captainProfile?.[0],
+      captainProfile: user.captainProfile || null,
     });
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });

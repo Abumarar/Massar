@@ -1,21 +1,21 @@
 import { Router } from "express";
+import { validateRequest } from "../middlewares/validate";
+import { CreateRideRequestBody, ListRideRequestsQueryParams, UpdateRideRequestStatusParams, UpdateRideRequestStatusBody } from "@workspace/api-zod";
 import { db } from "@workspace/db";
 import { rideRequestsTable, routesTable, captainsTable, usersTable } from "@workspace/db";
 import { eq, or } from "drizzle-orm";
 import { authenticateToken, AuthRequest } from "./auth";
 import crypto from "crypto";
+import { getIO } from "../lib/socket";
 
 const router = Router();
 
-router.post("/ride-requests", authenticateToken, async (req: AuthRequest, res) => {
+router.post("/ride-requests", authenticateToken, validateRequest({ body: CreateRideRequestBody }), async (req: AuthRequest, res) => {
   try {
     const { captainId, routeId, pickupLat, pickupLng, destLat, destLng, seats } = req.body;
     const passengerId = req.user!.id;
 
-    if (!captainId || !routeId || !pickupLat || !pickupLng || !destLat || !destLng || !seats) {
-      res.status(400).json({ error: "Missing fields" });
-      return;
-    }
+
 
     const route = await db.query.routesTable.findFirst({
       where: eq(routesTable.id, routeId),
@@ -56,7 +56,8 @@ router.post("/ride-requests", authenticateToken, async (req: AuthRequest, res) =
       }
     });
 
-    // In a real system, we'd emit a websocket event here to the captain
+    // Emit websocket event to the captain
+    getIO().to(captainId).emit("new_ride_request", request);
 
     res.status(201).json(request);
   } catch (error) {
@@ -64,7 +65,7 @@ router.post("/ride-requests", authenticateToken, async (req: AuthRequest, res) =
   }
 });
 
-router.get("/ride-requests", async (req, res, next) => {
+router.get("/ride-requests", validateRequest({ query: ListRideRequestsQueryParams }), async (req, res, next) => {
   if (req.query.role === "admin") {
     try {
       const requests = await db.query.rideRequestsTable.findMany({
@@ -180,15 +181,12 @@ router.get("/ride-requests", async (req, res, next) => {
   }
 });
 
-router.put("/ride-requests/:id/status", authenticateToken, async (req: AuthRequest, res) => {
+router.put("/ride-requests/:id/status", authenticateToken, validateRequest({ params: UpdateRideRequestStatusParams, body: UpdateRideRequestStatusBody }), async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!status) {
-      res.status(400).json({ error: "Missing status" });
-      return;
-    }
+
 
     // Validate if user has permission to update this (we skip deep checks for MVP for speed, but ideally check passenger vs captain)
     await db.update(rideRequestsTable)
@@ -210,7 +208,12 @@ router.put("/ride-requests/:id/status", authenticateToken, async (req: AuthReque
       return;
     }
     
-    // In a real system, emit websocket event here
+    // Emit websocket event to passenger
+    getIO().to(updated.passengerId).emit("ride_status_updated", updated);
+    // Emit to captain
+    if (updated.matchedCaptainId) {
+      getIO().to(updated.matchedCaptainId).emit("ride_status_updated", updated);
+    }
 
     res.status(200).json(updated);
   } catch (error) {
