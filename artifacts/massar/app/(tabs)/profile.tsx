@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '@/context/LanguageContext';
 import { calculateFare, usePricing } from '@/context/PricingContext';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -13,6 +14,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { t, language, isRTL, setLanguage } = useLanguage();
   const { pricing, updatePricing } = usePricing();
+  const { user } = useAuth();
   const router = useRouter();
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
 
@@ -60,6 +62,24 @@ export default function ProfileScreen() {
           <SettingRow icon="bell" label={t('notifications')} value="On" colors={colors} styles={styles} />
           <SettingRow icon="shield" label={t('safetyPrivacy')} value={t('protected')} colors={colors} styles={styles} last />
         </View>
+
+        {user?.role === 'admin' && (
+          <>
+            <Text style={styles.sectionLabel}>Admin Area</Text>
+            <View style={styles.settingsCard}>
+              <Pressable 
+                style={[styles.settingRow, { borderBottomWidth: 0 }]}
+                onPress={() => router.push('/admin-dashboard' as any)}
+              >
+                <View style={styles.settingIcon}>
+                  <Feather name="server" size={16} color={colors.gold} />
+                </View>
+                <Text style={styles.settingLabel}>Admin Dashboard</Text>
+                <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
+              </Pressable>
+            </View>
+          </>
+        )}
 
         <Text style={styles.sectionLabel}>{t('riderPricing')}</Text>
         <View style={styles.pricingCard}>

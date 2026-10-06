@@ -29,6 +29,11 @@ module.exports = {
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1ad16784-29f0-4d25-8889-0077622ca80a"
+      }
     }
   }
 };

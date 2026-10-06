@@ -11,12 +11,15 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { PricingProvider } from '@/context/PricingContext';
 import { setBaseUrl } from '@workspace/api-client-react';
-import { I18nManager } from 'react-native';
+import { I18nManager, View, ActivityIndicator } from 'react-native';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { SocketProvider } from '@/context/SocketContext';
+import { useColors } from '@/hooks/useColors';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -27,9 +30,39 @@ I18nManager.forceRTL(true);
 
 const queryClient = new QueryClient();
 
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+  const colors = useColors();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inAuthGroup = (segments[0] as any) === '(auth)';
+
+    if (!user && !inAuthGroup) {
+      router.replace('/(auth)/login' as any);
+    } else if (user && inAuthGroup) {
+      router.replace('/');
+    }
+  }, [user, isLoading, segments]);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerBackTitle: 'Back' }}>
+    <Stack screenOptions={{ headerBackTitle: 'Back', headerShown: false }}>
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="driver" options={{ headerShown: false }} />
     </Stack>
@@ -56,15 +89,21 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView>
-            <KeyboardProvider>
-              <LanguageProvider>
-                <PricingProvider>
-                  <RootLayoutNav />
-                </PricingProvider>
-              </LanguageProvider>
-            </KeyboardProvider>
-          </GestureHandlerRootView>
+          <AuthProvider>
+            <SocketProvider>
+              <GestureHandlerRootView>
+                <KeyboardProvider>
+                  <LanguageProvider>
+                    <PricingProvider>
+                      <AuthGuard>
+                        <RootLayoutNav />
+                      </AuthGuard>
+                    </PricingProvider>
+                  </LanguageProvider>
+                </KeyboardProvider>
+              </GestureHandlerRootView>
+            </SocketProvider>
+          </AuthProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

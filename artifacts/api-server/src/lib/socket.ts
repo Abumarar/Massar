@@ -7,7 +7,7 @@ let io: Server | null = null;
 export const initIO = (server: HTTPServer) => {
   io = new Server(server, {
     cors: {
-      origin: env.FRONTEND_URL || "*",
+      origin: process.env.FRONTEND_URL || "*",
       methods: ["GET", "POST", "PUT", "DELETE"],
     },
   });

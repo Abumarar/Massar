@@ -5,9 +5,7 @@
  * Tawsileh Intercity MVP API
  * OpenAPI spec version: 1.0.0
  */
-import type { ListRideRequestsRole } from './listRideRequestsRole';
 
-export type ListRideRequestsParams = {
-role?: ListRideRequestsRole;
+export type ListCaptainRideRequestsParams = {
 status?: string;
 };

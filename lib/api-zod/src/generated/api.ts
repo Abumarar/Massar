@@ -154,17 +154,19 @@ export const SearchMatchingCaptainsResponseItem = zod.object({
 export const SearchMatchingCaptainsResponse = zod.array(SearchMatchingCaptainsResponseItem)
 
 
-export const CreateRideRequestBody = zod.object({
-  "captainId": zod.string(),
-  "routeId": zod.string(),
+export const CreatePassengerRideRequestBody = zod.object({
+  "captainId": zod.string().optional(),
+  "routeId": zod.string().optional(),
   "pickupLat": zod.number(),
   "pickupLng": zod.number(),
   "destLat": zod.number(),
   "destLng": zod.number(),
-  "seats": zod.number()
+  "seats": zod.number(),
+  "type": zod.enum(['standard', 'airport', 'custom']).optional(),
+  "customSearchText": zod.string().optional()
 })
 
-export const CreateRideRequestResponse = zod.object({
+export const CreatePassengerRideRequestResponse = zod.object({
   "id": zod.string(),
   "passengerId": zod.string(),
   "matchedCaptainId": zod.string().optional(),
@@ -190,12 +192,11 @@ export const CreateRideRequestResponse = zod.object({
 })
 
 
-export const ListRideRequestsQueryParams = zod.object({
-  "role": zod.enum(['passenger', 'captain']).optional(),
+export const ListPassengerRideRequestsQueryParams = zod.object({
   "status": zod.coerce.string().optional()
 })
 
-export const ListRideRequestsResponseItem = zod.object({
+export const ListPassengerRideRequestsResponseItem = zod.object({
   "id": zod.string(),
   "passengerId": zod.string(),
   "matchedCaptainId": zod.string().optional(),
@@ -219,18 +220,83 @@ export const ListRideRequestsResponseItem = zod.object({
   "vehiclePlate": zod.string().optional()
 }).optional()
 })
-export const ListRideRequestsResponse = zod.array(ListRideRequestsResponseItem)
+export const ListPassengerRideRequestsResponse = zod.array(ListPassengerRideRequestsResponseItem)
 
 
-export const UpdateRideRequestStatusParams = zod.object({
+export const UpdatePassengerRideRequestStatusParams = zod.object({
   "id": zod.coerce.string()
 })
 
-export const UpdateRideRequestStatusBody = zod.object({
-  "status": zod.enum(['accepted', 'rejected', 'captain_arriving', 'picked_up', 'in_progress', 'completed', 'cancelled'])
+export const UpdatePassengerRideRequestStatusBody = zod.object({
+  "status": zod.enum(['cancelled'])
 })
 
-export const UpdateRideRequestStatusResponse = zod.object({
+export const UpdatePassengerRideRequestStatusResponse = zod.object({
+  "id": zod.string(),
+  "passengerId": zod.string(),
+  "matchedCaptainId": zod.string().optional(),
+  "routeId": zod.string(),
+  "status": zod.string(),
+  "pickupLat": zod.number().optional(),
+  "pickupLng": zod.number().optional(),
+  "destLat": zod.number().optional(),
+  "destLng": zod.number().optional(),
+  "seatsRequested": zod.number().optional(),
+  "estimatedFare": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "passenger": zod.object({
+  "fullName": zod.string().optional(),
+  "phone": zod.string().optional()
+}).optional(),
+  "captain": zod.object({
+  "fullName": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "vehicleMakeModel": zod.string().optional(),
+  "vehiclePlate": zod.string().optional()
+}).optional()
+})
+
+
+export const ListCaptainRideRequestsQueryParams = zod.object({
+  "status": zod.coerce.string().optional()
+})
+
+export const ListCaptainRideRequestsResponseItem = zod.object({
+  "id": zod.string(),
+  "passengerId": zod.string(),
+  "matchedCaptainId": zod.string().optional(),
+  "routeId": zod.string(),
+  "status": zod.string(),
+  "pickupLat": zod.number().optional(),
+  "pickupLng": zod.number().optional(),
+  "destLat": zod.number().optional(),
+  "destLng": zod.number().optional(),
+  "seatsRequested": zod.number().optional(),
+  "estimatedFare": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "passenger": zod.object({
+  "fullName": zod.string().optional(),
+  "phone": zod.string().optional()
+}).optional(),
+  "captain": zod.object({
+  "fullName": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "vehicleMakeModel": zod.string().optional(),
+  "vehiclePlate": zod.string().optional()
+}).optional()
+})
+export const ListCaptainRideRequestsResponse = zod.array(ListCaptainRideRequestsResponseItem)
+
+
+export const UpdateCaptainRideRequestStatusParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdateCaptainRideRequestStatusBody = zod.object({
+  "status": zod.enum(['accepted', 'rejected', 'captain_arriving', 'picked_up', 'in_progress', 'completed'])
+})
+
+export const UpdateCaptainRideRequestStatusResponse = zod.object({
   "id": zod.string(),
   "passengerId": zod.string(),
   "matchedCaptainId": zod.string().optional(),

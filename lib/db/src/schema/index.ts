@@ -68,12 +68,14 @@ export const captainRoutesTable = pgTable("massar_captain_routes", {
 export const rideRequestsTable = pgTable("massar_ride_requests", {
   id: text("id").primaryKey(),
   passengerId: text("passenger_id").notNull().references(() => usersTable.id),
-  routeId: text("route_id").notNull().references(() => routesTable.id),
+  routeId: text("route_id").references(() => routesTable.id), // Made optional for custom trips
   pickupLat: real("pickup_lat").notNull(),
   pickupLng: real("pickup_lng").notNull(),
   destinationLat: real("destination_lat").notNull(),
   destinationLng: real("destination_lng").notNull(),
   seatsRequested: integer("seats_requested").notNull(),
+  type: text("type").notNull().default("standard"), // standard, airport, custom
+  customSearchText: text("custom_search_text"), // Store user's text for custom trip
   status: text("status").notNull().default("searching"), // searching, matched, requested, accepted, captain_arriving, picked_up, in_progress, completed, cancelled
   matchedCaptainId: text("matched_captain_id").references(() => captainsTable.id),
   estimatedFare: real("estimated_fare").notNull(),
@@ -129,6 +131,80 @@ export const notificationsTable = pgTable("massar_notifications", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// 11. TRIP STOPS
+export const tripStopsTable = pgTable("massar_trip_stops", {
+  id: text("id").primaryKey(),
+  tripId: text("trip_id").notNull().references(() => tripsTable.id),
+  rideRequestId: text("ride_request_id").notNull().references(() => rideRequestsTable.id),
+  passengerId: text("passenger_id").notNull().references(() => usersTable.id),
+  type: text("type").notNull(), // pickup, dropoff
+  lat: real("lat").notNull(),
+  lng: real("lng").notNull(),
+  status: text("status").notNull().default("pending"), // pending, completed, skipped
+  stopOrder: integer("stop_order").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// 12. LEGAL CONSENTS
+export const legalConsentsTable = pgTable("massar_legal_consents", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => usersTable.id),
+  documentType: text("document_type").notNull(), // TERMS_OF_SERVICE, PRIVACY_POLICY, PASSENGER_TERMS, CAPTAIN_TERMS
+  version: text("version").notNull(),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }).notNull().defaultNow(),
+  ipAddress: text("ip_address"),
+});
+
+// 13. COMPLAINTS
+export const complaintsTable = pgTable("massar_complaints", {
+  id: text("id").primaryKey(),
+  reporterId: text("reporter_id").notNull().references(() => usersTable.id),
+  reportedId: text("reported_id").references(() => usersTable.id),
+  tripId: text("trip_id").references(() => tripsTable.id),
+  category: text("category").notNull(),
+  description: text("description").notNull(),
+  status: text("status").notNull().default("open"), // open, under_review, resolved, rejected
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
+
+// 14. PAYMENTS
+export const paymentsTable = pgTable("massar_payments", {
+  id: text("id").primaryKey(),
+  tripId: text("trip_id").notNull().references(() => tripsTable.id),
+  passengerId: text("passenger_id").notNull().references(() => usersTable.id),
+  amount: real("amount").notNull(),
+  currency: text("currency").notNull().default("JOD"),
+  method: text("method").notNull().default("cash"), // cash, card, wallet
+  status: text("status").notNull().default("pending"), // pending, completed, failed, refunded
+  transactionId: text("transaction_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
+
+// 15. VERIFICATION DOCUMENTS
+export const verificationDocumentsTable = pgTable("massar_verification_documents", {
+  id: text("id").primaryKey(),
+  captainId: text("captain_id").notNull().references(() => captainsTable.id),
+  documentType: text("document_type").notNull(), // national_id, driver_license, vehicle_registration
+  fileUrl: text("file_url").notNull(),
+  status: text("status").notNull().default("pending"), // pending, approved, rejected
+  rejectionReason: text("rejection_reason"),
+  uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+});
+
+// 16. OTPS
+export const otpsTable = pgTable("massar_otps", {
+  id: text("id").primaryKey(),
+  phone: text("phone").notNull(),
+  codeHash: text("code_hash").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // Export types and insert schemas
 export const insertUserSchema = createInsertSchema(usersTable);
 export const insertCaptainSchema = createInsertSchema(captainsTable);
@@ -140,6 +216,12 @@ export const insertTripSchema = createInsertSchema(tripsTable);
 export const insertTripPassengerSchema = createInsertSchema(tripPassengersTable);
 export const insertRatingSchema = createInsertSchema(ratingsTable);
 export const insertNotificationSchema = createInsertSchema(notificationsTable);
+export const insertTripStopSchema = createInsertSchema(tripStopsTable);
+export const insertLegalConsentSchema = createInsertSchema(legalConsentsTable);
+export const insertComplaintSchema = createInsertSchema(complaintsTable);
+export const insertPaymentSchema = createInsertSchema(paymentsTable);
+export const insertVerificationDocumentSchema = createInsertSchema(verificationDocumentsTable);
+export const insertOtpSchema = createInsertSchema(otpsTable);
 
 import { relations } from "drizzle-orm";
 

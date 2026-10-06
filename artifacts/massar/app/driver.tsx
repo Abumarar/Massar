@@ -14,7 +14,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSetupCaptainProfile } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
@@ -164,7 +163,6 @@ export default function DriverOnboardingScreen() {
     };
     try {
       await submitApplication.mutateAsync({ data: payload });
-      await AsyncStorage.setItem('@massar/driver-application', JSON.stringify({ ...payload, submittedAt: new Date().toISOString() }));
       setStep('submitted');
     } catch {
       setError(arabic ? 'تعذر إرسال الطلب. تحقق من الاتصال وحاول مرة أخرى.' : 'We could not submit your application. Check your connection and try again.');

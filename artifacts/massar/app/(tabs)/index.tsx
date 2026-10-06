@@ -13,41 +13,23 @@ import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
-import { useSearchMatchingCaptains, useCreateRideRequest, MatchingCaptain } from '@workspace/api-client-react';
+import { useSearchMatchingCaptains, useCreatePassengerRideRequest, MatchingCaptain } from '@workspace/api-client-react';
 import { JORDAN_GOVERNORATES } from '@/constants/governorates';
 
-type StoredTrip = {
-  id: string;
-  captain: string;
-  vehicle: string;
-  route: string;
-  seats: number;
-  fare: number;
-  status: string;
-  createdAt: string;
-};
-
-const getPassengerId = async () => {
-  let id = await AsyncStorage.getItem('@massar/passengerId');
-  if (!id) {
-    id = `pass-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    await AsyncStorage.setItem('@massar/passengerId', id);
-  }
-  return id;
-};
+import { useAuth } from '@/context/AuthContext';
+import { useSocket } from '@/context/SocketContext';
 
 export default function HomeScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { t, isRTL } = useLanguage();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const { socket } = useSocket();
   const router = useRouter();
-  
-  const [passengerId, setPassengerId] = useState<string | null>(null);
-  
+
   // Filtering state
   const [activeTab, setActiveTab] = useState<'standard' | 'hourly'>('standard');
   const [selectedGovernorate, setSelectedGovernorate] = useState<string>(JORDAN_GOVERNORATES[0]);
@@ -57,16 +39,31 @@ export default function HomeScreen() {
   const [seatsToBook, setSeatsToBook] = useState(1);
 
   useEffect(() => {
-    getPassengerId().then(setPassengerId);
-  }, []);
+    if (!socket) return;
+    
+    const handleRideAccepted = (data: any) => {
+      Alert.alert(
+        (t as any)('rideAccepted') || 'Ride Accepted',
+        isRTL
+          ? 'تم قبول رحلتك من قبل الكابتن!'
+          : 'Your ride was accepted by a Captain!',
+        [{ text: isRTL ? 'عرض' : 'View', onPress: () => router.navigate('/(tabs)/trips') }],
+      );
+    };
+
+    socket.on('ride-accepted', handleRideAccepted);
+    return () => {
+      socket.off('ride-accepted', handleRideAccepted);
+    };
+  }, [socket]);
 
   const { data: rides, isLoading } = useSearchMatchingCaptains({ routeId: 'amman-jerash', pickupLat: 32, pickupLng: 35, destLat: 32.1, destLng: 35.1, seats: 1 });
-  const bookRideMutation = useCreateRideRequest();
+  const bookRideMutation = useCreatePassengerRideRequest();
 
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
 
   const confirmBooking = async () => {
-    if (!passengerId || !selectedRide) return;
+    if (!user || !selectedRide) return;
     try {
       const booking = await bookRideMutation.mutateAsync({
         data: {
@@ -79,21 +76,6 @@ export default function HomeScreen() {
           seats: seatsToBook,
         }
       });
-      
-      const trip: StoredTrip = {
-        id: booking.id,
-        captain: `Driver ${selectedRide.captainId.slice(-4)}`,
-        vehicle: 'Car',
-        route: selectedRide.vehicleMakeModel || 'Unknown',
-        seats: seatsToBook,
-        fare: booking.estimatedFare,
-        status: isRTL ? 'مؤكد' : 'Confirmed',
-        createdAt: booking.createdAt,
-      };
-      
-      const saved = await AsyncStorage.getItem('@massar/trips');
-      const existing: StoredTrip[] = saved ? JSON.parse(saved) : [];
-      await AsyncStorage.setItem('@massar/trips', JSON.stringify([trip, ...existing]));
       
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setSelectedRide(null);
@@ -282,6 +264,50 @@ export default function HomeScreen() {
           ))}
         </ScrollView>
         <View style={{ height: 20 }} />
+
+        {/* Special Requests */}
+        <Text style={styles.filterLabel}>{isRTL ? 'طلب رحلة' : 'Request a Ride'}</Text>
+        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+          <Pressable 
+            style={{ flex: 1, backgroundColor: colors.petrol, padding: 16, borderRadius: 16, alignItems: 'center', borderWidth: 1, borderColor: colors.petrol }}
+            onPress={() => router.push('/request-ride' as any)}
+          >
+            <Feather name="send" size={24} color={colors.primaryForeground} style={{ marginBottom: 8 }} />
+            <Text style={{ color: colors.primaryForeground, fontWeight: '800', fontSize: 14, textAlign: 'center' }}>
+              {isRTL ? 'طلب رحلة عادية' : 'Request a Ride'}
+            </Text>
+            <Text style={{ color: colors.primaryForeground, opacity: 0.7, fontSize: 11, textAlign: 'center', marginTop: 2 }}>
+              {isRTL ? 'اختر المسار والمقاعد' : 'Choose route & seats'}
+            </Text>
+          </Pressable>
+
+          <Pressable 
+            style={{ flex: 1, backgroundColor: colors.goldSoft, padding: 16, borderRadius: 16, alignItems: 'center', borderWidth: 1, borderColor: colors.gold }}
+            onPress={() => router.push('/request-airport' as any)}
+          >
+            <Feather name={"plane" as any} size={24} color={colors.gold} style={{ marginBottom: 8 }} />
+            <Text style={{ color: colors.ink, fontWeight: '700', fontSize: 13, textAlign: 'center' }}>
+              {isRTL ? 'رحلة مطار' : 'Airport Trip'}
+            </Text>
+          </Pressable>
+        </View>
+
+        <Pressable 
+          style={{ backgroundColor: colors.mint, padding: 16, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24, borderWidth: 1, borderColor: colors.petrol }}
+          onPress={() => router.push('/request-custom' as any)}
+        >
+          <Feather name="search" size={22} color={colors.petrol} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.ink, fontWeight: '700', fontSize: 14 }}>
+              {isRTL ? 'رحلة مخصصة' : 'Custom Trip'}
+            </Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>
+              {isRTL ? 'أخبرنا إلى أين تريد الذهاب' : 'Tell us where you want to go'}
+            </Text>
+          </View>
+          <Feather name="arrow-right" size={16} color={colors.petrol} />
+        </Pressable>
+
 
         {/* Loading */}
         {isLoading && (

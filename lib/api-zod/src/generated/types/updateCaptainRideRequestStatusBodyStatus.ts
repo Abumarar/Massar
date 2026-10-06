@@ -6,15 +6,14 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type UpdateRideRequestStatusBodyStatus = typeof UpdateRideRequestStatusBodyStatus[keyof typeof UpdateRideRequestStatusBodyStatus];
+export type UpdateCaptainRideRequestStatusBodyStatus = typeof UpdateCaptainRideRequestStatusBodyStatus[keyof typeof UpdateCaptainRideRequestStatusBodyStatus];
 
 
-export const UpdateRideRequestStatusBodyStatus = {
+export const UpdateCaptainRideRequestStatusBodyStatus = {
   accepted: 'accepted',
   rejected: 'rejected',
   captain_arriving: 'captain_arriving',
   picked_up: 'picked_up',
   in_progress: 'in_progress',
   completed: 'completed',
-  cancelled: 'cancelled',
 } as const;

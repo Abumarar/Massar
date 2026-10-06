@@ -5,9 +5,10 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { useListRideRequests, useUpdateCaptainStatus } from '@workspace/api-client-react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useListCaptainRideRequests, useUpdateCaptainStatus } from '@workspace/api-client-react';
 import { JORDAN_GOVERNORATES } from '@/constants/governorates';
+import { useAuth } from '@/context/AuthContext';
+import { useSocket } from '@/context/SocketContext';
 
 export default function DriverDashboardScreen() {
   const colors = useColors();
@@ -18,7 +19,9 @@ export default function DriverDashboardScreen() {
   
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
 
-  const [driverId, setDriverId] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { socket } = useSocket();
+  const driverId = user?.id;
   
   // Form state
   const [tripType, setTripType] = useState<'standard' | 'hourly'>('standard');
@@ -29,18 +32,19 @@ export default function DriverDashboardScreen() {
   const [rentalHours, setRentalHours] = useState('4');
 
   useEffect(() => {
-    AsyncStorage.getItem('@massar/driverId').then(id => {
-      if (!id) {
-        id = `driver-test-${Date.now()}`;
-        AsyncStorage.setItem('@massar/driverId', id);
-      }
-      setDriverId(id);
-    });
-  }, []);
+    if (!socket) return;
+    
+    const handleRideRequested = () => {
+      refetch();
+    };
 
-  const { data: rides, isLoading, refetch } = useListRideRequests(
-    { role: 'captain' }
-  );
+    socket.on('ride-requested', handleRideRequested);
+    return () => {
+      socket.off('ride-requested', handleRideRequested);
+    };
+  }, [socket]);
+
+  const { data: rides, isLoading, refetch } = useListCaptainRideRequests();
   const updateStatusMutation = useUpdateCaptainStatus();
 
   const handleCreateRide = async () => {

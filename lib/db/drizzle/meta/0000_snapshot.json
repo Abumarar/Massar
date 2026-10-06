@@ -1,64 +1,11 @@
 {
-  "id": "5028b924-1e53-420c-bb54-9c03d2ce07db",
+  "id": "8ae92072-4b91-43e2-b911-c2e975afe71f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.massar_active_drivers": {
-      "name": "massar_active_drivers",
-      "schema": "",
-      "columns": {
-        "driver_id": {
-          "name": "driver_id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "is_online": {
-          "name": "is_online",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
-        "current_location": {
-          "name": "current_location",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "massar_active_drivers_driver_id_massar_drivers_id_fk": {
-          "name": "massar_active_drivers_driver_id_massar_drivers_id_fk",
-          "tableFrom": "massar_active_drivers",
-          "tableTo": "massar_drivers",
-          "columnsFrom": [
-            "driver_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.massar_bookings": {
-      "name": "massar_bookings",
+    "public.massar_captain_routes": {
+      "name": "massar_captain_routes",
       "schema": "",
       "columns": {
         "id": {
@@ -67,46 +14,34 @@
           "primaryKey": true,
           "notNull": true
         },
-        "ride_id": {
-          "name": "ride_id",
+        "captain_id": {
+          "name": "captain_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "passenger_id": {
-          "name": "passenger_id",
+        "route_id": {
+          "name": "route_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "seats_booked": {
-          "name": "seats_booked",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "total_fare": {
-          "name": "total_fare",
+        "pickup_radius_km": {
+          "name": "pickup_radius_km",
           "type": "real",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": 3
         },
-        "status": {
-          "name": "status",
-          "type": "text",
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": "'confirmed'"
+          "default": true
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
@@ -115,12 +50,25 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "massar_bookings_ride_id_massar_rides_id_fk": {
-          "name": "massar_bookings_ride_id_massar_rides_id_fk",
-          "tableFrom": "massar_bookings",
-          "tableTo": "massar_rides",
+        "massar_captain_routes_captain_id_massar_captains_id_fk": {
+          "name": "massar_captain_routes_captain_id_massar_captains_id_fk",
+          "tableFrom": "massar_captain_routes",
+          "tableTo": "massar_captains",
           "columnsFrom": [
-            "ride_id"
+            "captain_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "massar_captain_routes_route_id_massar_routes_id_fk": {
+          "name": "massar_captain_routes_route_id_massar_routes_id_fk",
+          "tableFrom": "massar_captain_routes",
+          "tableTo": "massar_routes",
+          "columnsFrom": [
+            "route_id"
           ],
           "columnsTo": [
             "id"
@@ -135,8 +83,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.massar_driver_documents": {
-      "name": "massar_driver_documents",
+    "public.massar_captains": {
+      "name": "massar_captains",
       "schema": "",
       "columns": {
         "id": {
@@ -145,117 +93,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "driver_id": {
-          "name": "driver_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "file_name": {
-          "name": "file_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "file_uri": {
-          "name": "file_uri",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "submitted_at": {
-          "name": "submitted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "reviewed_at": {
-          "name": "reviewed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "review_note": {
-          "name": "review_note",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "massar_driver_documents_driver_id_massar_drivers_id_fk": {
-          "name": "massar_driver_documents_driver_id_massar_drivers_id_fk",
-          "tableFrom": "massar_driver_documents",
-          "tableTo": "massar_drivers",
-          "columnsFrom": [
-            "driver_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.massar_drivers": {
-      "name": "massar_drivers",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "full_name": {
-          "name": "full_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "phone": {
-          "name": "phone",
+        "user_id": {
+          "name": "user_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -266,12 +105,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "route": {
-          "name": "route",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "status": {
           "name": "status",
           "type": "text",
@@ -279,29 +112,38 @@
           "notNull": true,
           "default": "'pending'"
         },
-        "vehicle_make_model": {
-          "name": "vehicle_make_model",
-          "type": "text",
+        "is_online": {
+          "name": "is_online",
+          "type": "boolean",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": false
         },
-        "vehicle_color": {
-          "name": "vehicle_color",
-          "type": "text",
+        "current_location_lat": {
+          "name": "current_location_lat",
+          "type": "real",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "vehicle_plate": {
-          "name": "vehicle_plate",
-          "type": "text",
+        "current_location_lng": {
+          "name": "current_location_lng",
+          "type": "real",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "vehicle_seats": {
-          "name": "vehicle_seats",
+        "rating": {
+          "name": "rating",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 5
+        },
+        "total_trips": {
+          "name": "total_trips",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false,
+          "default": 0
         },
         "submitted_at": {
           "name": "submitted_at",
@@ -338,15 +180,29 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "massar_captains_user_id_massar_users_id_fk": {
+          "name": "massar_captains_user_id_massar_users_id_fk",
+          "tableFrom": "massar_captains",
+          "tableTo": "massar_users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.massar_operations_activity": {
-      "name": "massar_operations_activity",
+    "public.massar_complaints": {
+      "name": "massar_complaints",
       "schema": "",
       "columns": {
         "id": {
@@ -355,21 +211,279 @@
           "primaryKey": true,
           "notNull": true
         },
-        "actor": {
-          "name": "actor",
+        "reporter_id": {
+          "name": "reporter_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "action": {
-          "name": "action",
+        "reported_id": {
+          "name": "reported_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trip_id": {
+          "name": "trip_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "subject": {
-          "name": "subject",
+        "description": {
+          "name": "description",
           "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "admin_notes": {
+          "name": "admin_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "massar_complaints_reporter_id_massar_users_id_fk": {
+          "name": "massar_complaints_reporter_id_massar_users_id_fk",
+          "tableFrom": "massar_complaints",
+          "tableTo": "massar_users",
+          "columnsFrom": [
+            "reporter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "massar_complaints_reported_id_massar_users_id_fk": {
+          "name": "massar_complaints_reported_id_massar_users_id_fk",
+          "tableFrom": "massar_complaints",
+          "tableTo": "massar_users",
+          "columnsFrom": [
+            "reported_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "massar_complaints_trip_id_massar_trips_id_fk": {
+          "name": "massar_complaints_trip_id_massar_trips_id_fk",
+          "tableFrom": "massar_complaints",
+          "tableTo": "massar_trips",
+          "columnsFrom": [
+            "trip_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.massar_legal_consents": {
+      "name": "massar_legal_consents",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document_type": {
+          "name": "document_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "accepted_at": {
+          "name": "accepted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "massar_legal_consents_user_id_massar_users_id_fk": {
+          "name": "massar_legal_consents_user_id_massar_users_id_fk",
+          "tableFrom": "massar_legal_consents",
+          "tableTo": "massar_users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.massar_notifications": {
+      "name": "massar_notifications",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_read": {
+          "name": "is_read",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "massar_notifications_user_id_massar_users_id_fk": {
+          "name": "massar_notifications_user_id_massar_users_id_fk",
+          "tableFrom": "massar_notifications",
+          "tableTo": "massar_users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.massar_otps": {
+      "name": "massar_otps",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code_hash": {
+          "name": "code_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
         },
@@ -389,8 +503,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.massar_operations_rides": {
-      "name": "massar_operations_rides",
+    "public.massar_payments": {
+      "name": "massar_payments",
       "schema": "",
       "columns": {
         "id": {
@@ -399,44 +513,137 @@
           "primaryKey": true,
           "notNull": true
         },
-        "route": {
-          "name": "route",
+        "trip_id": {
+          "name": "trip_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "departure_at": {
-          "name": "departure_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "driver_name": {
-          "name": "driver_name",
+        "passenger_id": {
+          "name": "passenger_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "passenger_count": {
-          "name": "passenger_count",
-          "type": "integer",
+        "amount": {
+          "name": "amount",
+          "type": "real",
           "primaryKey": false,
           "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'JOD'"
+        },
+        "method": {
+          "name": "method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'cash'"
         },
         "status": {
           "name": "status",
           "type": "text",
           "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "transaction_id": {
+          "name": "transaction_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "massar_payments_trip_id_massar_trips_id_fk": {
+          "name": "massar_payments_trip_id_massar_trips_id_fk",
+          "tableFrom": "massar_payments",
+          "tableTo": "massar_trips",
+          "columnsFrom": [
+            "trip_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "massar_payments_passenger_id_massar_users_id_fk": {
+          "name": "massar_payments_passenger_id_massar_users_id_fk",
+          "tableFrom": "massar_payments",
+          "tableTo": "massar_users",
+          "columnsFrom": [
+            "passenger_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.massar_ratings": {
+      "name": "massar_ratings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
           "notNull": true
         },
-        "fare_jod": {
-          "name": "fare_jod",
-          "type": "real",
+        "trip_id": {
+          "name": "trip_id",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "issue": {
-          "name": "issue",
+        "rater_id": {
+          "name": "rater_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ratee_id": {
+          "name": "ratee_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "score": {
+          "name": "score",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comment": {
+          "name": "comment",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -450,15 +657,55 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "massar_ratings_trip_id_massar_trips_id_fk": {
+          "name": "massar_ratings_trip_id_massar_trips_id_fk",
+          "tableFrom": "massar_ratings",
+          "tableTo": "massar_trips",
+          "columnsFrom": [
+            "trip_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "massar_ratings_rater_id_massar_users_id_fk": {
+          "name": "massar_ratings_rater_id_massar_users_id_fk",
+          "tableFrom": "massar_ratings",
+          "tableTo": "massar_users",
+          "columnsFrom": [
+            "rater_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "massar_ratings_ratee_id_massar_captains_id_fk": {
+          "name": "massar_ratings_ratee_id_massar_captains_id_fk",
+          "tableFrom": "massar_ratings",
+          "tableTo": "massar_captains",
+          "columnsFrom": [
+            "ratee_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.massar_rides": {
-      "name": "massar_rides",
+    "public.massar_ride_requests": {
+      "name": "massar_ride_requests",
       "schema": "",
       "columns": {
         "id": {
@@ -467,32 +714,236 @@
           "primaryKey": true,
           "notNull": true
         },
-        "driver_id": {
-          "name": "driver_id",
+        "passenger_id": {
+          "name": "passenger_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "route": {
-          "name": "route",
+        "route_id": {
+          "name": "route_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pickup_lat": {
+          "name": "pickup_lat",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pickup_lng": {
+          "name": "pickup_lng",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "destination_lat": {
+          "name": "destination_lat",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "destination_lng": {
+          "name": "destination_lng",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seats_requested": {
+          "name": "seats_requested",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'standard'"
+        },
+        "custom_search_text": {
+          "name": "custom_search_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'searching'"
+        },
+        "matched_captain_id": {
+          "name": "matched_captain_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "estimated_fare": {
+          "name": "estimated_fare",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "massar_ride_requests_passenger_id_massar_users_id_fk": {
+          "name": "massar_ride_requests_passenger_id_massar_users_id_fk",
+          "tableFrom": "massar_ride_requests",
+          "tableTo": "massar_users",
+          "columnsFrom": [
+            "passenger_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "massar_ride_requests_route_id_massar_routes_id_fk": {
+          "name": "massar_ride_requests_route_id_massar_routes_id_fk",
+          "tableFrom": "massar_ride_requests",
+          "tableTo": "massar_routes",
+          "columnsFrom": [
+            "route_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "massar_ride_requests_matched_captain_id_massar_captains_id_fk": {
+          "name": "massar_ride_requests_matched_captain_id_massar_captains_id_fk",
+          "tableFrom": "massar_ride_requests",
+          "tableTo": "massar_captains",
+          "columnsFrom": [
+            "matched_captain_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.massar_routes": {
+      "name": "massar_routes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "total_seats": {
-          "name": "total_seats",
+        "origin": {
+          "name": "origin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "destination": {
+          "name": "destination",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "base_fare": {
+          "name": "base_fare",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.massar_trip_passengers": {
+      "name": "massar_trip_passengers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "trip_id": {
+          "name": "trip_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ride_request_id": {
+          "name": "ride_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "passenger_id": {
+          "name": "passenger_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seats": {
+          "name": "seats",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
-        "available_seats": {
-          "name": "available_seats",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "fare_per_seat": {
-          "name": "fare_per_seat",
+        "fare": {
+          "name": "fare",
           "type": "real",
           "primaryKey": false,
           "notNull": true
@@ -502,10 +953,228 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'open'"
+          "default": "'active'"
         },
-        "departure_time": {
-          "name": "departure_time",
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "massar_trip_passengers_trip_id_massar_trips_id_fk": {
+          "name": "massar_trip_passengers_trip_id_massar_trips_id_fk",
+          "tableFrom": "massar_trip_passengers",
+          "tableTo": "massar_trips",
+          "columnsFrom": [
+            "trip_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "massar_trip_passengers_ride_request_id_massar_ride_requests_id_fk": {
+          "name": "massar_trip_passengers_ride_request_id_massar_ride_requests_id_fk",
+          "tableFrom": "massar_trip_passengers",
+          "tableTo": "massar_ride_requests",
+          "columnsFrom": [
+            "ride_request_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "massar_trip_passengers_passenger_id_massar_users_id_fk": {
+          "name": "massar_trip_passengers_passenger_id_massar_users_id_fk",
+          "tableFrom": "massar_trip_passengers",
+          "tableTo": "massar_users",
+          "columnsFrom": [
+            "passenger_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.massar_trip_stops": {
+      "name": "massar_trip_stops",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "trip_id": {
+          "name": "trip_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ride_request_id": {
+          "name": "ride_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "passenger_id": {
+          "name": "passenger_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lat": {
+          "name": "lat",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lng": {
+          "name": "lng",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "stop_order": {
+          "name": "stop_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "massar_trip_stops_trip_id_massar_trips_id_fk": {
+          "name": "massar_trip_stops_trip_id_massar_trips_id_fk",
+          "tableFrom": "massar_trip_stops",
+          "tableTo": "massar_trips",
+          "columnsFrom": [
+            "trip_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "massar_trip_stops_ride_request_id_massar_ride_requests_id_fk": {
+          "name": "massar_trip_stops_ride_request_id_massar_ride_requests_id_fk",
+          "tableFrom": "massar_trip_stops",
+          "tableTo": "massar_ride_requests",
+          "columnsFrom": [
+            "ride_request_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "massar_trip_stops_passenger_id_massar_users_id_fk": {
+          "name": "massar_trip_stops_passenger_id_massar_users_id_fk",
+          "tableFrom": "massar_trip_stops",
+          "tableTo": "massar_users",
+          "columnsFrom": [
+            "passenger_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.massar_trips": {
+      "name": "massar_trips",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "captain_id": {
+          "name": "captain_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "route_id": {
+          "name": "route_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'created'"
+        },
+        "available_seats": {
+          "name": "available_seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed_at": {
+          "name": "completed_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
@@ -527,12 +1196,258 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "massar_rides_driver_id_massar_drivers_id_fk": {
-          "name": "massar_rides_driver_id_massar_drivers_id_fk",
-          "tableFrom": "massar_rides",
-          "tableTo": "massar_drivers",
+        "massar_trips_captain_id_massar_captains_id_fk": {
+          "name": "massar_trips_captain_id_massar_captains_id_fk",
+          "tableFrom": "massar_trips",
+          "tableTo": "massar_captains",
           "columnsFrom": [
-            "driver_id"
+            "captain_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "massar_trips_route_id_massar_routes_id_fk": {
+          "name": "massar_trips_route_id_massar_routes_id_fk",
+          "tableFrom": "massar_trips",
+          "tableTo": "massar_routes",
+          "columnsFrom": [
+            "route_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "massar_trips_vehicle_id_massar_vehicles_id_fk": {
+          "name": "massar_trips_vehicle_id_massar_vehicles_id_fk",
+          "tableFrom": "massar_trips",
+          "tableTo": "massar_vehicles",
+          "columnsFrom": [
+            "vehicle_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.massar_users": {
+      "name": "massar_users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "full_name": {
+          "name": "full_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'passenger'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "massar_users_phone_unique": {
+          "name": "massar_users_phone_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "phone"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.massar_vehicles": {
+      "name": "massar_vehicles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "captain_id": {
+          "name": "captain_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "make_model": {
+          "name": "make_model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "color": {
+          "name": "color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "plate": {
+          "name": "plate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_seats": {
+          "name": "total_seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "massar_vehicles_captain_id_massar_captains_id_fk": {
+          "name": "massar_vehicles_captain_id_massar_captains_id_fk",
+          "tableFrom": "massar_vehicles",
+          "tableTo": "massar_captains",
+          "columnsFrom": [
+            "captain_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.massar_verification_documents": {
+      "name": "massar_verification_documents",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "captain_id": {
+          "name": "captain_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document_type": {
+          "name": "document_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_url": {
+          "name": "file_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "rejection_reason": {
+          "name": "rejection_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uploaded_at": {
+          "name": "uploaded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "reviewed_at": {
+          "name": "reviewed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "massar_verification_documents_captain_id_massar_captains_id_fk": {
+          "name": "massar_verification_documents_captain_id_massar_captains_id_fk",
+          "tableFrom": "massar_verification_documents",
+          "tableTo": "massar_captains",
+          "columnsFrom": [
+            "captain_id"
           ],
           "columnsTo": [
             "id"

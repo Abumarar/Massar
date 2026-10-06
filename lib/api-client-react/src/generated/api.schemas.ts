@@ -85,6 +85,70 @@ export interface Route {
   baseFare: number;
 }
 
+export interface TripStop {
+  id: string;
+  tripId: string;
+  rideRequestId: string;
+  passengerId: string;
+  type: string;
+  lat: number;
+  lng: number;
+  status: string;
+  stopOrder: number;
+}
+
+export interface LegalConsent {
+  id: string;
+  userId: string;
+  documentType: string;
+  version: string;
+  acceptedAt: string;
+  ipAddress?: string;
+}
+
+export interface Complaint {
+  id: string;
+  reporterId: string;
+  reportedId?: string;
+  tripId?: string;
+  category: string;
+  description: string;
+  status: string;
+  adminNotes?: string;
+  createdAt: string;
+}
+
+export interface Payment {
+  id: string;
+  tripId: string;
+  passengerId: string;
+  amount: number;
+  currency: string;
+  method: string;
+  status: string;
+  transactionId?: string;
+  createdAt: string;
+}
+
+export interface VerificationDocument {
+  id: string;
+  captainId: string;
+  documentType: string;
+  fileUrl: string;
+  status: string;
+  rejectionReason?: string;
+  uploadedAt: string;
+  reviewedAt?: string;
+}
+
+export interface Otp {
+  id: string;
+  phone: string;
+  attempts: number;
+  expiresAt: string;
+  createdAt: string;
+}
+
 export type RegisterBodyRole = typeof RegisterBodyRole[keyof typeof RegisterBodyRole];
 
 
@@ -133,43 +197,96 @@ destLng: number;
 seats: number;
 };
 
-export type CreateRideRequestBody = {
-  captainId: string;
-  routeId: string;
+export type CreatePassengerRideRequestBodyType = typeof CreatePassengerRideRequestBodyType[keyof typeof CreatePassengerRideRequestBodyType];
+
+
+export const CreatePassengerRideRequestBodyType = {
+  standard: 'standard',
+  airport: 'airport',
+  custom: 'custom',
+} as const;
+
+export type CreatePassengerRideRequestBody = {
+  captainId?: string;
+  routeId?: string;
   pickupLat: number;
   pickupLng: number;
   destLat: number;
   destLng: number;
   seats: number;
+  type?: CreatePassengerRideRequestBodyType;
+  customSearchText?: string;
 };
 
-export type ListRideRequestsParams = {
-role?: ListRideRequestsRole;
+export type ListPassengerRideRequestsParams = {
 status?: string;
 };
 
-export type ListRideRequestsRole = typeof ListRideRequestsRole[keyof typeof ListRideRequestsRole];
+export type UpdatePassengerRideRequestStatusBodyStatus = typeof UpdatePassengerRideRequestStatusBodyStatus[keyof typeof UpdatePassengerRideRequestStatusBodyStatus];
 
 
-export const ListRideRequestsRole = {
-  passenger: 'passenger',
-  captain: 'captain',
+export const UpdatePassengerRideRequestStatusBodyStatus = {
+  cancelled: 'cancelled',
 } as const;
 
-export type UpdateRideRequestStatusBodyStatus = typeof UpdateRideRequestStatusBodyStatus[keyof typeof UpdateRideRequestStatusBodyStatus];
+export type UpdatePassengerRideRequestStatusBody = {
+  status: UpdatePassengerRideRequestStatusBodyStatus;
+};
+
+export type ListCaptainRideRequestsParams = {
+status?: string;
+};
+
+export type UpdateCaptainRideRequestStatusBodyStatus = typeof UpdateCaptainRideRequestStatusBodyStatus[keyof typeof UpdateCaptainRideRequestStatusBodyStatus];
 
 
-export const UpdateRideRequestStatusBodyStatus = {
+export const UpdateCaptainRideRequestStatusBodyStatus = {
   accepted: 'accepted',
   rejected: 'rejected',
   captain_arriving: 'captain_arriving',
   picked_up: 'picked_up',
   in_progress: 'in_progress',
   completed: 'completed',
-  cancelled: 'cancelled',
 } as const;
 
-export type UpdateRideRequestStatusBody = {
-  status: UpdateRideRequestStatusBodyStatus;
+export type UpdateCaptainRideRequestStatusBody = {
+  status: UpdateCaptainRideRequestStatusBodyStatus;
 };
 
+// Admin captain types
+export type AdminCaptainStatus = 'pending' | 'in_review' | 'approved' | 'rejected' | 'suspended';
+
+export type AdminCaptainUser = {
+  id?: string;
+  fullName?: string;
+  phone?: string;
+  role?: string;
+};
+
+export type AdminCaptainVehicle = {
+  id?: string;
+  makeModel?: string;
+  color?: string;
+  plate?: string;
+  totalSeats?: number;
+};
+
+export interface AdminCaptain {
+  id: string;
+  userId: string;
+  nationalIdLast4: string;
+  status: AdminCaptainStatus;
+  isOnline: boolean;
+  rating?: number;
+  totalTrips?: number;
+  reviewNote?: string;
+  submittedAt: string;
+  reviewedAt?: string;
+  user?: AdminCaptainUser;
+  vehicle?: AdminCaptainVehicle;
+}
+
+export type UpdateAdminCaptainStatusBody = {
+  status: AdminCaptainStatus;
+  reviewNote?: string;
+};

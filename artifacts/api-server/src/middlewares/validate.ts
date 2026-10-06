@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { AnyZodObject, ZodError } from "zod";
+import { z, ZodError } from "zod";
 
-export const validateRequest = (schemas: { body?: AnyZodObject; query?: AnyZodObject; params?: AnyZodObject }) => {
+export const validateRequest = (schemas: { body?: any; query?: any; params?: any }) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       if (schemas.body) {
@@ -14,8 +14,8 @@ export const validateRequest = (schemas: { body?: AnyZodObject; query?: AnyZodOb
         req.params = schemas.params.parse(req.params);
       }
       next();
-    } catch (error) {
-      if (error instanceof ZodError) {
+    } catch (error: any) {
+      if (error instanceof ZodError || error.name === "ZodError") {
         res.status(400).json({
           error: "Validation error",
           details: error.errors,
