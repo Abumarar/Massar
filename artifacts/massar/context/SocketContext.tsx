@@ -29,7 +29,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
     const initSocket = async () => {
       const token = await SecureStore.getItemAsync('massar_jwt');
-      const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://massar-api.onrender.com';
+      const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://d3225dxeajx9t8.cloudfront.net';
 
       const newSocket = io(baseUrl, {
         auth: { token },

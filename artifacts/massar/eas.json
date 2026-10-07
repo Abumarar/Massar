@@ -9,13 +9,18 @@
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://d3225dxeajx9t8.cloudfront.net",
+        "EXPO_PUBLIC_DOMAIN": "d3225dxeajx9t8.cloudfront.net"
+      },
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "massar-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://d3225dxeajx9t8.cloudfront.net",
+        "EXPO_PUBLIC_DOMAIN": "d3225dxeajx9t8.cloudfront.net"
       },
       "android": {
         "buildType": "apk"

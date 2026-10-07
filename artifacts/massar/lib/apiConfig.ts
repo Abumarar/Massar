@@ -9,7 +9,7 @@ let cachedApiUrl: string | null = null;
 export async function getDynamicApiUrl(): Promise<string> {
   if (cachedApiUrl) return cachedApiUrl;
 
-  const defaultUrl = Constants.expoConfig?.extra?.apiUrl || 'https://api.massar.com';
+  const defaultUrl = process.env.EXPO_PUBLIC_API_URL || Constants.expoConfig?.extra?.apiUrl || 'https://d3225dxeajx9t8.cloudfront.net';
 
   try {
     // Attempt to fetch from a hard-to-block source (like a raw GitHub Gist)
