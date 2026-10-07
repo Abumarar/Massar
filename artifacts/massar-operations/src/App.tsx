@@ -140,8 +140,48 @@ function IconBan({ className }: { className?: string }) {
     </svg>
   );
 }
+function IconLogOut({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+function IconLock({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+function IconKey({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" />
+      <path d="m21 2-9.6 9.6" />
+      <circle cx="7.5" cy="15.5" r="5.5" />
+    </svg>
+  );
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+const STATUS_ARABIC: Record<string, string> = {
+  pending:          'قيد الانتظار',
+  accepted:         'تم القبول',
+  captain_arriving: 'الكابتن في الطريق',
+  picked_up:        'تم ركوب العميل',
+  in_progress:      'الرحلة جارية',
+  completed:        'مكتملة',
+  cancelled:        'ملغية',
+  rejected:         'مرفوضة',
+  in_review:        'قيد التدقيق',
+  approved:         'معتمد',
+  suspended:        'موقوف',
+};
+
 const STATUS_COLORS: Record<string, string> = {
   pending:          'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
   accepted:         'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
@@ -151,6 +191,9 @@ const STATUS_COLORS: Record<string, string> = {
   completed:        'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
   cancelled:        'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
   rejected:         'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300',
+  in_review:        'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+  approved:         'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  suspended:        'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -158,20 +201,24 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
       <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
-      {status.replace(/_/g, ' ')}
+      {STATUS_ARABIC[status] ?? status.replace(/_/g, ' ')}
     </span>
   );
 }
 
 function formatDate(str: string) {
-  return new Date(str).toLocaleString('en-GB', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
+  try {
+    return new Date(str).toLocaleDateString('ar-JO', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  } catch {
+    return str;
+  }
 }
 
 function formatFare(fare: number) {
-  return `${fare.toFixed(2)} JOD`;
+  return `${fare.toFixed(2)} د.أ`;
 }
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
@@ -246,33 +293,33 @@ function RideRequestsPanel({
         <div className="flex-1">
           <h2 className="text-base font-bold">{title}</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {data ? `${filtered.length} of ${data.length} requests` : 'Loading…'}
+            {data ? `${filtered.length} من أصل ${data.length} طلب` : 'جاري التحميل…'}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <input
             type="search"
-            placeholder="Search by ID / route…"
+            placeholder="بحث برقم الطلب / المسار / الراكب…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="text-sm px-3 py-1.5 rounded-lg bg-muted border border-[hsl(var(--border))] outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] placeholder:text-muted-foreground w-48"
+            className="text-sm px-3 py-1.5 rounded-lg bg-muted border border-[hsl(var(--border))] outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] placeholder:text-muted-foreground w-56"
           />
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
             className="text-sm px-3 py-1.5 rounded-lg bg-muted border border-[hsl(var(--border))] outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] cursor-pointer"
           >
-            <option value="all">All statuses</option>
+            <option value="all">جميع الحالات</option>
             {ALL_STATUSES.map(s => (
               <option key={s} value={s}>
-                {s.replace(/_/g, ' ')} {counts[s] ? `(${counts[s]})` : ''}
+                {STATUS_ARABIC[s] ?? s.replace(/_/g, ' ')} {counts[s] ? `(${counts[s]})` : ''}
               </option>
             ))}
           </select>
           <button
             onClick={refetch}
             className="p-1.5 rounded-lg bg-muted border border-[hsl(var(--border))] hover:bg-accent hover:text-accent-foreground transition-colors"
-            title="Refresh"
+            title="تحديث البيانات"
           >
             <IconRefresh className="w-4 h-4" />
           </button>
@@ -289,7 +336,7 @@ function RideRequestsPanel({
               : 'bg-muted text-muted-foreground hover:bg-secondary'
           }`}
         >
-          All {data ? `(${data.length})` : ''}
+          الكل {data ? `(${data.length})` : ''}
         </button>
         {ALL_STATUSES.filter(s => counts[s]).map(s => (
           <button
@@ -301,7 +348,7 @@ function RideRequestsPanel({
                 : 'bg-muted text-muted-foreground hover:bg-secondary'
             }`}
           >
-            {s.replace(/_/g, ' ')} ({counts[s]})
+            {STATUS_ARABIC[s] ?? s.replace(/_/g, ' ')} ({counts[s]})
           </button>
         ))}
       </div>
@@ -311,13 +358,13 @@ function RideRequestsPanel({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[hsl(var(--border))] bg-muted/40">
-              <th className="text-left px-6 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">ID</th>
-              <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Passenger</th>
-              <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Route</th>
-              <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Seats</th>
-              <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Fare</th>
-              <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Status</th>
-              <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Requested At</th>
+              <th className="text-right px-6 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">رقم الطلب</th>
+              <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">الراكب</th>
+              <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">المسار</th>
+              <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">المقاعد</th>
+              <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">الأجرة المقدرة</th>
+              <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">الحالة</th>
+              <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">وقت الطلب</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[hsl(var(--border))]">
@@ -333,8 +380,8 @@ function RideRequestsPanel({
                 <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
                   <div className="flex flex-col items-center gap-2">
                     <IconActivity className="w-8 h-8 opacity-30" />
-                    <p className="font-medium">No ride requests found</p>
-                    <p className="text-xs">Try adjusting your filters</p>
+                    <p className="font-semibold text-sm">لا توجد طلبات رحلات مطابقة</p>
+                    <p className="text-xs">جرّب تعديل خيارات الفلترة أو البحث</p>
                   </div>
                 </td>
               </tr>
@@ -350,7 +397,7 @@ function RideRequestsPanel({
                   {r.passenger?.fullName ? (
                     <div>
                       <p className="font-medium">{r.passenger.fullName}</p>
-                      <p className="text-xs text-muted-foreground">{r.passenger.phone}</p>
+                      <p className="text-xs text-muted-foreground ops-mono">{r.passenger.phone}</p>
                     </div>
                   ) : (
                     <span className="text-muted-foreground ops-mono text-xs">{r.passengerId?.slice(0,8)}…</span>
@@ -365,7 +412,7 @@ function RideRequestsPanel({
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="font-semibold text-accent">{formatFare(r.estimatedFare)}</span>
+                  <span className="font-bold text-accent">{formatFare(r.estimatedFare)}</span>
                 </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={r.status} />
@@ -390,15 +437,15 @@ function RoutesPanel() {
     <div className="ops-panel rounded-2xl overflow-hidden">
       <div className="px-6 py-4 border-b border-[hsl(var(--border))] flex items-center justify-between">
         <div>
-          <h2 className="text-base font-bold">Routes</h2>
+          <h2 className="text-base font-bold">المسارات المعتمدة</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {query.data ? `${query.data.length} active routes` : 'Loading…'}
+            {query.data ? `${query.data.length} مسار نشط` : 'جاري التحميل…'}
           </p>
         </div>
         <button
           onClick={() => query.refetch()}
           className="p-1.5 rounded-lg bg-muted border border-[hsl(var(--border))] hover:bg-accent hover:text-accent-foreground transition-colors"
-          title="Refresh"
+          title="تحديث المسارات"
         >
           <IconRefresh className="w-4 h-4" />
         </button>
@@ -414,7 +461,7 @@ function RoutesPanel() {
 
         {query.isError && (
           <div className="px-6 py-8 text-center text-muted-foreground">
-            <p className="text-sm">Could not load routes</p>
+            <p className="text-sm">تعذر تحميل المسارات</p>
           </div>
         )}
 
@@ -425,14 +472,14 @@ function RoutesPanel() {
                 <IconMap className="w-4 h-4" />
               </div>
               <div>
-                <p className="font-semibold text-sm">{route.name}</p>
+                <p className="font-bold text-sm">{route.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {route.origin} → {route.destination}
+                  {route.origin} ← {route.destination}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-sm font-bold text-accent">{route.baseFare} JOD</span>
+              <span className="text-sm font-bold text-accent">{route.baseFare} د.أ</span>
               <IconChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </div>
@@ -440,7 +487,7 @@ function RoutesPanel() {
 
         {query.data?.length === 0 && (
           <div className="px-6 py-8 text-center text-muted-foreground text-sm">
-            No routes configured
+            لا توجد مسارات مضافة حالياً
           </div>
         )}
       </div>
@@ -470,32 +517,32 @@ function Overview() {
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="Total Requests"
+          label="إجمالي الطلبات"
           value={passengerQuery.isLoading ? '—' : stats.total}
           icon={IconActivity}
           accent="bg-primary/10 text-primary"
-          trend="All time ride requests"
+          trend="كافة طلبات الرحلات المسجلة"
         />
         <StatCard
-          label="In Progress"
+          label="رحلات نشطة الآن"
           value={passengerQuery.isLoading ? '—' : stats.inProgress}
           icon={IconCar}
           accent="bg-blue-500/10 text-blue-500"
-          trend="Currently active rides"
+          trend="الرحلات الجارية حالياً"
         />
         <StatCard
-          label="Completed"
+          label="الرحلات المكتملة"
           value={passengerQuery.isLoading ? '—' : stats.completed}
           icon={IconUsers}
           accent="bg-green-500/10 text-green-500"
-          trend="Successfully completed"
+          trend="تم إنجازها بنجاح"
         />
         <StatCard
-          label="Est. Revenue"
-          value={passengerQuery.isLoading ? '—' : `${stats.revenue.toFixed(0)} JOD`}
+          label="الإيرادات التقديرية"
+          value={passengerQuery.isLoading ? '—' : `${stats.revenue.toFixed(0)} د.أ`}
           icon={IconRoute}
           accent="bg-accent/20 text-accent"
-          trend="From completed rides"
+          trend="من إجمالي الرحلات المكتملة"
         />
       </div>
 
@@ -504,7 +551,7 @@ function Overview() {
         {/* Passenger requests takes 2/3 */}
         <div className="xl:col-span-2">
           <RideRequestsPanel
-            title="Passenger Ride Requests"
+            title="طلبات ركاب مسار"
             data={passengerQuery.data}
             isLoading={passengerQuery.isLoading}
             refetch={passengerQuery.refetch}
@@ -518,7 +565,7 @@ function Overview() {
 
       {/* Captain requests full width */}
       <RideRequestsPanel
-        title="Captain Ride Requests"
+        title="رحلات الكباتن"
         data={captainQuery.data}
         isLoading={captainQuery.isLoading}
         refetch={captainQuery.refetch}
@@ -531,12 +578,12 @@ function Overview() {
 type Page = 'overview' | 'passenger' | 'captain' | 'routes' | 'captains' | 'all-requests';
 
 const NAV_ITEMS: { id: Page; label: string; icon: React.FC<{ className?: string }> }[] = [
-  { id: 'overview',     label: 'Overview',           icon: IconActivity },
-  { id: 'all-requests', label: 'All Ride Requests',   icon: IconCar },
-  { id: 'captains',     label: 'Captain Approvals',   icon: IconShield },
-  { id: 'passenger',   label: 'Passenger Requests',  icon: IconUsers },
-  { id: 'captain',     label: 'Captain Requests',    icon: IconCar },
-  { id: 'routes',      label: 'Routes',              icon: IconMap },
+  { id: 'overview',     label: 'لوحة التحكم العامة',   icon: IconActivity },
+  { id: 'all-requests', label: 'كافة طلبات الرحلات',   icon: IconCar },
+  { id: 'captains',     label: 'تدقيق واعتماد الكباتن', icon: IconShield },
+  { id: 'passenger',   label: 'طلبات الركاب',         icon: IconUsers },
+  { id: 'captain',     label: 'رحلات الكباتن',        icon: IconCar },
+  { id: 'routes',      label: 'المسارات المعتمدة',     icon: IconMap },
 ];
 
 function AllRideRequestsPage() {
@@ -544,7 +591,7 @@ function AllRideRequestsPage() {
   return (
     <div className="ops-fade-in">
       <RideRequestsPanel
-        title="All Passenger Ride Requests (Admin View)"
+        title="كافة طلبات رحلات الركاب (عرض الإدارة)"
         data={q.data}
         isLoading={q.isLoading}
         refetch={q.refetch}
@@ -558,7 +605,7 @@ function PassengerPage() {
   return (
     <div className="ops-fade-in">
       <RideRequestsPanel
-        title="All Passenger Ride Requests"
+        title="طلبات رحلات الركاب"
         data={q.data}
         isLoading={q.isLoading}
         refetch={q.refetch}
@@ -572,7 +619,7 @@ function CaptainPage() {
   return (
     <div className="ops-fade-in">
       <RideRequestsPanel
-        title="All Captain Ride Requests"
+        title="رحلات الكباتن"
         data={q.data}
         isLoading={q.isLoading}
         refetch={q.refetch}
@@ -655,11 +702,11 @@ function ReviewNoteModal({
   if (!open || !captain) return null;
 
   const ACTION_LABEL: Record<string, string> = {
-    approved:  'Approve',
-    rejected:  'Reject',
-    suspended: 'Suspend',
-    in_review: 'Set In Review',
-    pending:   'Set Pending',
+    approved:  'اعتماد وتفعيل',
+    rejected:  'رفض الطلب',
+    suspended: 'إيقاف الحساب',
+    in_review: 'وضع قيد التدقيق',
+    pending:   'إعادة للانتظار',
   };
 
   const ACTION_COLOR: Record<string, string> = {
@@ -674,23 +721,23 @@ function ReviewNoteModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="relative ops-panel rounded-2xl p-6 w-full max-w-md shadow-2xl ops-fade-in"
+        className="relative ops-panel rounded-2xl p-6 w-full max-w-md shadow-2xl ops-fade-in text-right"
         onClick={e => e.stopPropagation()}
       >
         <h3 className="text-base font-bold mb-1">
-          {ACTION_LABEL[targetStatus]} Captain
+          {ACTION_LABEL[targetStatus]} - الكابتن
         </h3>
         <p className="text-sm text-muted-foreground mb-4">
-          {captain.user?.fullName ?? 'Unknown'} · {captain.user?.phone ?? ''}
+          {captain.user?.fullName ?? 'كابتن'} · {captain.user?.phone ?? ''}
         </p>
 
         <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-          Review Note <span className="font-normal opacity-60">(optional)</span>
+          ملاحظة التدقيق <span className="font-normal opacity-60">(اختياري)</span>
         </label>
         <textarea
           className="w-full text-sm px-3 py-2 rounded-lg bg-muted border border-[hsl(var(--border))] outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] resize-none"
           rows={3}
-          placeholder="Add a note for this decision…"
+          placeholder="أضف ملاحظة أو سبب القرار..."
           value={note}
           onChange={e => setNote(e.target.value)}
           autoFocus
@@ -701,14 +748,14 @@ function ReviewNoteModal({
             onClick={onClose}
             className="px-4 py-2 text-sm rounded-lg bg-muted border border-[hsl(var(--border))] hover:bg-secondary transition-colors"
           >
-            Cancel
+            إلغاء
           </button>
           <button
             onClick={() => onConfirm(note)}
             disabled={isLoading}
             className={`px-4 py-2 text-sm rounded-lg font-semibold transition-colors disabled:opacity-40 ${ACTION_COLOR[targetStatus]}`}
           >
-            {isLoading ? 'Saving…' : ACTION_LABEL[targetStatus]}
+            {isLoading ? 'جاري الحفظ…' : ACTION_LABEL[targetStatus]}
           </button>
         </div>
       </div>
@@ -729,7 +776,7 @@ function CaptainCard({
   const statusCls = CAPTAIN_STATUS_COLORS[captain.status] ?? 'bg-gray-100 text-gray-800';
 
   return (
-    <div className="ops-panel rounded-2xl p-5 flex flex-col gap-4 hover:shadow-lg transition-shadow ops-fade-in">
+    <div className="ops-panel rounded-2xl p-5 flex flex-col gap-4 hover:shadow-lg transition-shadow ops-fade-in text-right">
       {/* Header row */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -738,47 +785,47 @@ function CaptainCard({
           </div>
           <div>
             <p className="font-bold text-sm">{captain.user?.fullName ?? '—'}</p>
-            <p className="text-xs text-muted-foreground">{captain.user?.phone ?? '—'}</p>
+            <p className="text-xs text-muted-foreground ops-mono">{captain.user?.phone ?? '—'}</p>
           </div>
         </div>
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${statusCls}`}>
           <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
-          {captain.status.replace(/_/g, ' ')}
+          {STATUS_ARABIC[captain.status] ?? captain.status.replace(/_/g, ' ')}
         </span>
       </div>
 
       {/* Vehicle info */}
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="bg-muted rounded-lg px-3 py-2">
-          <p className="text-muted-foreground mb-0.5">Vehicle</p>
+          <p className="text-muted-foreground mb-0.5">نوع المركبة</p>
           <p className="font-semibold">{captain.vehicle?.makeModel ?? '—'}</p>
         </div>
         <div className="bg-muted rounded-lg px-3 py-2">
-          <p className="text-muted-foreground mb-0.5">Plate</p>
+          <p className="text-muted-foreground mb-0.5">رقم اللوحة</p>
           <p className="font-semibold ops-mono">{captain.vehicle?.plate ?? '—'}</p>
         </div>
         <div className="bg-muted rounded-lg px-3 py-2">
-          <p className="text-muted-foreground mb-0.5">Color</p>
+          <p className="text-muted-foreground mb-0.5">اللون</p>
           <p className="font-semibold">{captain.vehicle?.color ?? '—'}</p>
         </div>
         <div className="bg-muted rounded-lg px-3 py-2">
-          <p className="text-muted-foreground mb-0.5">Seats</p>
+          <p className="text-muted-foreground mb-0.5">المقاعد</p>
           <p className="font-semibold">{captain.vehicle?.totalSeats ?? '—'}</p>
         </div>
         <div className="bg-muted rounded-lg px-3 py-2">
-          <p className="text-muted-foreground mb-0.5">National ID last 4</p>
+          <p className="text-muted-foreground mb-0.5">الرقم الوطني (آخر 4)</p>
           <p className="font-semibold ops-mono">{captain.nationalIdLast4}</p>
         </div>
         <div className="bg-muted rounded-lg px-3 py-2">
-          <p className="text-muted-foreground mb-0.5">Submitted</p>
-          <p className="font-semibold">{new Date(captain.submittedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+          <p className="text-muted-foreground mb-0.5">تاريخ التقديم</p>
+          <p className="font-semibold">{formatDate(captain.submittedAt)}</p>
         </div>
       </div>
 
       {/* Review note */}
       {captain.reviewNote && (
         <div className="text-xs bg-muted/60 border border-[hsl(var(--border))] rounded-lg px-3 py-2">
-          <span className="font-semibold text-muted-foreground">Note: </span>
+          <span className="font-semibold text-muted-foreground">ملاحظة الإدارة: </span>
           {captain.reviewNote}
         </div>
       )}
@@ -787,27 +834,27 @@ function CaptainCard({
       <div className="flex flex-wrap gap-2 pt-1 border-t border-[hsl(var(--border))]">
         {captain.status !== 'approved' && (
           <ActionBtn variant="approve" onClick={() => onAction(captain, 'approved')} disabled={isPending}>
-            <IconCheck className="w-3.5 h-3.5" /> Approve
+            <IconCheck className="w-3.5 h-3.5" /> اعتماد وتفعيل
           </ActionBtn>
         )}
         {captain.status !== 'in_review' && (
           <ActionBtn variant="review" onClick={() => onAction(captain, 'in_review')} disabled={isPending}>
-            <IconEye className="w-3.5 h-3.5" /> In Review
+            <IconEye className="w-3.5 h-3.5" /> وضع قيد التدقيق
           </ActionBtn>
         )}
         {captain.status !== 'rejected' && (
           <ActionBtn variant="reject" onClick={() => onAction(captain, 'rejected')} disabled={isPending}>
-            <IconX className="w-3.5 h-3.5" /> Reject
+            <IconX className="w-3.5 h-3.5" /> رفض الطلب
           </ActionBtn>
         )}
         {captain.status !== 'suspended' && (
           <ActionBtn variant="suspend" onClick={() => onAction(captain, 'suspended')} disabled={isPending}>
-            <IconBan className="w-3.5 h-3.5" /> Suspend
+            <IconBan className="w-3.5 h-3.5" /> إيقاف الحساب
           </ActionBtn>
         )}
         {captain.status !== 'pending' && (
           <ActionBtn variant="pending" onClick={() => onAction(captain, 'pending')} disabled={isPending}>
-            Reset Pending
+            إعادة للانتظار
           </ActionBtn>
         )}
       </div>
@@ -874,12 +921,14 @@ function CaptainsApprovalPage() {
           <button
             key={s}
             onClick={() => setStatusFilter(s === statusFilter ? 'all' : s)}
-            className={`ops-panel rounded-xl p-4 text-left hover:scale-[1.02] transition-transform ${
+            className={`ops-panel rounded-xl p-4 text-right hover:scale-[1.02] transition-transform ${
               statusFilter === s ? 'ring-2 ring-[hsl(var(--ring))]' : ''
             }`}
           >
             <p className="text-2xl font-extrabold ops-display">{counts[s] ?? 0}</p>
-            <p className="text-xs font-medium text-muted-foreground capitalize mt-1">{s.replace(/_/g, ' ')}</p>
+            <p className="text-xs font-medium text-muted-foreground capitalize mt-1">
+              {STATUS_ARABIC[s] ?? s.replace(/_/g, ' ')}
+            </p>
           </button>
         ))}
       </div>
@@ -888,7 +937,7 @@ function CaptainsApprovalPage() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <input
           type="search"
-          placeholder="Search by name, phone, plate…"
+          placeholder="بحث بالاسم، رقم الهاتف، أو لوحة المركبة…"
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="text-sm px-3 py-2 rounded-lg bg-muted border border-[hsl(var(--border))] outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] placeholder:text-muted-foreground flex-1 max-w-sm"
@@ -900,7 +949,7 @@ function CaptainsApprovalPage() {
               statusFilter === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-secondary'
             }`}
           >
-            All ({captains.length})
+            الكل ({captains.length})
           </button>
           {STATUSES.filter(s => counts[s]).map(s => (
             <button
@@ -910,13 +959,13 @@ function CaptainsApprovalPage() {
                 statusFilter === s ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-secondary'
               }`}
             >
-              {s.replace(/_/g, ' ')} ({counts[s]})
+              {STATUS_ARABIC[s] ?? s.replace(/_/g, ' ')} ({counts[s]})
             </button>
           ))}
           <button
             onClick={() => query.refetch()}
             className="p-1.5 rounded-lg bg-muted border border-[hsl(var(--border))] hover:bg-accent hover:text-accent-foreground transition-colors"
-            title="Refresh"
+            title="تحديث البيانات"
           >
             <IconRefresh className="w-4 h-4" />
           </button>
@@ -939,16 +988,16 @@ function CaptainsApprovalPage() {
       {query.isError && (
         <div className="ops-panel rounded-2xl p-12 text-center">
           <IconShield className="w-10 h-10 mx-auto opacity-30 mb-3" />
-          <p className="font-semibold">Could not load captains</p>
-          <p className="text-sm text-muted-foreground mt-1">Make sure the API server is running and you're using an admin token.</p>
+          <p className="font-semibold">تعذر تحميل بيانات الكباتن</p>
+          <p className="text-sm text-muted-foreground mt-1">تأكد من تشغيل الخادم وصلاحيات الحساب الإداري.</p>
         </div>
       )}
 
       {!query.isLoading && !query.isError && filtered.length === 0 && (
         <div className="ops-panel rounded-2xl p-12 text-center">
           <IconShield className="w-10 h-10 mx-auto opacity-30 mb-3" />
-          <p className="font-semibold">No captains found</p>
-          <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters</p>
+          <p className="font-semibold">لا يوجد كباتن مطابقون للبحث</p>
+          <p className="text-sm text-muted-foreground mt-1">جرّب تعديل معايير الفلترة أو البحث</p>
         </div>
       )}
 
@@ -978,7 +1027,143 @@ function CaptainsApprovalPage() {
   );
 }
 
-function Shell() {
+interface AdminUser {
+  id: string;
+  phone: string;
+  fullName: string;
+  role: string;
+}
+
+function AdminLogin({ onLogin }: { onLogin: (user: AdminUser) => void }) {
+  const [username, setUsername] = useState('abumatar');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!username.trim() || !password.trim()) {
+      setError('يرجى إدخال اسم المستخدم وكلمة المرور');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL ?? '';
+      const res = await fetch(`${baseUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: username.trim(), password }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'فشل تسجيل الدخول، تأكد من صحة البيانات');
+      }
+
+      if (data.user?.role !== 'admin') {
+        throw new Error('عذراً! هذا الحساب لا يملك صلاحيات الآدمن للدخول هنا.');
+      }
+
+      localStorage.setItem('massar_admin_token', data.token);
+      localStorage.setItem('massar_admin_user', JSON.stringify(data.user));
+      queryClient.clear();
+      onLogin(data.user);
+    } catch (err: any) {
+      setError(err.message || 'حدث خطأ أثناء تسجيل الدخول');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center bg-background p-4 relative overflow-hidden ops-shell">
+      {/* Background decoration */}
+      <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="w-full max-w-md ops-panel rounded-3xl p-8 shadow-2xl relative z-10 border border-[hsl(var(--border))]">
+        {/* Logo and Header */}
+        <div className="flex flex-col items-center text-center mb-8">
+          <div className="w-14 h-14 rounded-2xl bg-[hsl(var(--sidebar-primary))] flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
+            <span className="text-[hsl(var(--sidebar-primary-foreground))] font-black text-2xl">M</span>
+          </div>
+          <h1 className="text-2xl font-black ops-display tracking-tight">Massar Operations</h1>
+          <p className="text-xs text-muted-foreground mt-1">بوابة إدارة العمليات والتحكم (Admin Portal)</p>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mt-3">
+            <IconLock className="w-3.5 h-3.5" />
+            <span>منطقة محميّة — تسجيل الدخول مطلوب</span>
+          </div>
+        </div>
+
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-3">
+            <IconBan className="w-4 h-4 shrink-0" />
+            <span className="font-medium">{error}</span>
+          </div>
+        )}
+
+        {/* Login Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+              اسم المستخدم (Username)
+            </label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="abumatar"
+              className="w-full px-4 py-3 rounded-xl bg-muted/60 border border-[hsl(var(--border))] outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] text-sm font-medium transition-all"
+              required
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+              كلمة المرور (Password)
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••••••"
+              className="w-full px-4 py-3 rounded-xl bg-muted/60 border border-[hsl(var(--border))] outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] text-sm font-medium transition-all"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3.5 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 active:scale-[0.99] transition-all disabled:opacity-50 shadow-lg shadow-primary/25 mt-2 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            {loading ? (
+              <>
+                <IconRefresh className="w-4 h-4 animate-spin" />
+                <span>جاري التحقق...</span>
+              </>
+            ) : (
+              <>
+                <IconKey className="w-4 h-4" />
+                <span>تسجيل الدخول</span>
+              </>
+            )}
+          </button>
+        </form>
+
+        <p className="text-center text-[11px] text-muted-foreground mt-8">
+          مسار &copy; {new Date().getFullYear()} — نظام إدارة العمليات والتوصيل
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Shell({ user, onLogout }: { user: AdminUser; onLogout: () => void }) {
   const [page, setPage] = useState<Page>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [dark, setDark] = useState(false);
@@ -1002,8 +1187,8 @@ function Shell() {
           </div>
           {sidebarOpen && (
             <div className="min-w-0">
-              <p className="font-extrabold text-sm ops-display truncate">Massar</p>
-              <p className="text-[10px] opacity-60 truncate">Operations</p>
+              <p className="font-black text-sm ops-display truncate">مسار</p>
+              <p className="text-[10px] opacity-75 font-semibold truncate">إدارة العمليات</p>
             </div>
           )}
         </div>
@@ -1026,30 +1211,53 @@ function Shell() {
                 <Icon className="w-4 h-4 shrink-0" />
                 {sidebarOpen && <span className="truncate">{label}</span>}
                 {active && sidebarOpen && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[hsl(var(--sidebar-primary))]" />
+                  <span className="mr-auto w-1.5 h-1.5 rounded-full bg-[hsl(var(--sidebar-primary))]" />
                 )}
               </button>
             );
           })}
         </nav>
 
-        {/* Bottom controls */}
-        <div className="p-2 border-t border-[hsl(var(--sidebar-border))] flex flex-col gap-1">
+        {/* User Info & Bottom controls */}
+        <div className="p-2 border-t border-[hsl(var(--sidebar-border))] flex flex-col gap-1.5">
+          {/* Admin user pill */}
+          {sidebarOpen && (
+            <div className="px-3 py-2 rounded-lg bg-muted/40 border border-[hsl(var(--sidebar-border))] mb-1 flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-primary/20 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                {user.phone[0].toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1 text-right">
+                <p className="text-xs font-bold truncate leading-tight ops-mono">{user.phone}</p>
+                <p className="text-[10px] text-muted-foreground">مسؤول النظام (Admin)</p>
+              </div>
+            </div>
+          )}
+
           <button
             onClick={() => setDark(d => !d)}
             className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[hsl(var(--sidebar-accent)/0.5)] transition-colors opacity-70 hover:opacity-100 text-sm"
-            title={dark ? 'Light mode' : 'Dark mode'}
+            title={dark ? 'الوضع النهاري' : 'الوضع الليلي'}
           >
             {dark ? <IconSun className="w-4 h-4 shrink-0" /> : <IconMoon className="w-4 h-4 shrink-0" />}
-            {sidebarOpen && <span>{dark ? 'Light mode' : 'Dark mode'}</span>}
+            {sidebarOpen && <span>{dark ? 'الوضع النهاري' : 'الوضع الليلي'}</span>}
           </button>
+
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors opacity-80 hover:opacity-100 text-sm"
+            title="تسجيل الخروج"
+          >
+            <IconLogOut className="w-4 h-4 shrink-0" />
+            {sidebarOpen && <span>تسجيل الخروج</span>}
+          </button>
+
           <button
             onClick={() => setSidebarOpen(o => !o)}
             className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[hsl(var(--sidebar-accent)/0.5)] transition-colors opacity-70 hover:opacity-100 text-sm"
-            title={sidebarOpen ? 'Collapse' : 'Expand'}
+            title={sidebarOpen ? 'طي القائمة' : 'توسيع القائمة'}
           >
             <IconMenu className="w-4 h-4 shrink-0" />
-            {sidebarOpen && <span>Collapse</span>}
+            {sidebarOpen && <span>{sidebarOpen ? 'طي القائمة' : 'توسيع القائمة'}</span>}
           </button>
         </div>
       </aside>
@@ -1060,16 +1268,16 @@ function Shell() {
         <header className="h-16 flex items-center justify-between px-6 border-b border-[hsl(var(--border))] bg-card shrink-0">
           <div>
             <h1 className="text-lg font-extrabold ops-display">
-              {NAV_ITEMS.find(n => n.id === page)?.label ?? 'Dashboard'}
+              {NAV_ITEMS.find(n => n.id === page)?.label ?? 'لوحة التحكم'}
             </h1>
             <p className="text-xs text-muted-foreground">
-              {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              {new Date().toLocaleDateString('ar-JO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs font-semibold">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              Live
+              مباشر 🟢
             </span>
           </div>
         </header>
@@ -1089,9 +1297,33 @@ function Shell() {
 }
 
 function App() {
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(() => {
+    try {
+      const saved = localStorage.getItem('massar_admin_user');
+      const token = localStorage.getItem('massar_admin_token');
+      if (saved && token) {
+        return JSON.parse(saved);
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  });
+
+  const handleLogout = () => {
+    localStorage.removeItem('massar_admin_token');
+    localStorage.removeItem('massar_admin_user');
+    queryClient.clear();
+    setAdminUser(null);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
-      <Shell />
+      {!adminUser ? (
+        <AdminLogin onLogin={(user) => setAdminUser(user)} />
+      ) : (
+        <Shell user={adminUser} onLogout={handleLogout} />
+      )}
     </QueryClientProvider>
   );
 }

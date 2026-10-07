@@ -109,6 +109,7 @@ router.post("/auth/login", validateRequest({ body: LoginBody }), async (req, res
       },
     });
   } catch (error) {
+    console.error("LOGIN_ERROR:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -9,6 +9,9 @@ import { env } from "./lib/env";
 
 const app: Express = express();
 
+// Trust reverse proxy (Nginx / CloudFront)
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,
