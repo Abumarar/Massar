@@ -60,13 +60,101 @@ router.post("/auth/register", validateRequest({ body: RegisterBody }), async (re
         eq(usersTable.phone, normalizedPhone),
         eq(usersTable.phone, phone.trim())
       ),
+      with: {
+        captainProfile: true,
+      },
     });
 
     if (existingUser) {
-      res.status(400).json({ error: "User already exists" });
-      return;
+      // User already exists with this phone. Allow dual registration / activation!
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      if (role === "captain") {
+        let captainProfile = existingUser.captainProfile;
+        if (!captainProfile) {
+          const captainId = crypto.randomUUID();
+          await db.insert(captainsTable).values({
+            id: captainId,
+            userId: existingUser.id,
+            nationalIdLast4: "0000",
+            status: "approved",
+            isOnline: true,
+          });
+          captainProfile = {
+            id: captainId,
+            userId: existingUser.id,
+            nationalIdLast4: "0000",
+            status: "approved",
+            isOnline: true,
+            currentLocationLat: null,
+            currentLocationLng: null,
+            rating: 5.0,
+            totalTrips: 0,
+            submittedAt: new Date(),
+            reviewedAt: null,
+            reviewNote: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+        }
+
+        await db
+          .update(usersTable)
+          .set({
+            role: "captain",
+            fullName: fullName?.trim() || existingUser.fullName,
+            passwordHash,
+          })
+          .where(eq(usersTable.id, existingUser.id));
+
+        const token = jwt.sign(
+          { id: existingUser.id, phone: normalizedPhone, role: "captain" },
+          JWT_SECRET,
+          { expiresIn: "30d" }
+        );
+
+        res.status(200).json({
+          token,
+          user: {
+            id: existingUser.id,
+            phone: normalizedPhone,
+            fullName: fullName?.trim() || existingUser.fullName,
+            role: "captain",
+            captainProfile,
+          },
+        });
+        return;
+      } else {
+        // Registering as passenger with existing phone
+        await db
+          .update(usersTable)
+          .set({
+            fullName: fullName?.trim() || existingUser.fullName,
+            passwordHash,
+          })
+          .where(eq(usersTable.id, existingUser.id));
+
+        const token = jwt.sign(
+          { id: existingUser.id, phone: normalizedPhone, role: "passenger" },
+          JWT_SECRET,
+          { expiresIn: "30d" }
+        );
+
+        res.status(200).json({
+          token,
+          user: {
+            id: existingUser.id,
+            phone: normalizedPhone,
+            fullName: fullName?.trim() || existingUser.fullName,
+            role: "passenger",
+            captainProfile: existingUser.captainProfile || null,
+          },
+        });
+        return;
+      }
     }
 
+    // New user registration
     const passwordHash = await bcrypt.hash(password, 10);
     const userId = crypto.randomUUID();
 
@@ -78,14 +166,48 @@ router.post("/auth/register", validateRequest({ body: RegisterBody }), async (re
       role,
     });
 
-    // Auto login
+    let captainProfile = null;
+    if (role === "captain") {
+      const captainId = crypto.randomUUID();
+      await db.insert(captainsTable).values({
+        id: captainId,
+        userId,
+        nationalIdLast4: "0000",
+        status: "approved",
+        isOnline: true,
+      });
+      captainProfile = {
+        id: captainId,
+        userId,
+        nationalIdLast4: "0000",
+        status: "approved",
+        isOnline: true,
+        currentLocationLat: null,
+        currentLocationLng: null,
+        rating: 5.0,
+        totalTrips: 0,
+        submittedAt: new Date(),
+        reviewedAt: null,
+        reviewNote: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+
     const token = jwt.sign({ id: userId, phone: normalizedPhone, role }, JWT_SECRET, { expiresIn: "30d" });
 
     res.status(200).json({
       token,
-      user: { id: userId, phone: normalizedPhone, fullName: fullName.trim(), role },
+      user: {
+        id: userId,
+        phone: normalizedPhone,
+        fullName: fullName.trim(),
+        role,
+        captainProfile,
+      },
     });
   } catch (error) {
+    console.error("REGISTER_ERROR:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -164,5 +286,32 @@ router.get("/auth/me", authenticateToken, async (req: AuthRequest, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+export async function seedDefaultAdminIfMissing() {
+  try {
+    const existingAdmin = await db.query.usersTable.findFirst({
+      where: or(
+        eq(usersTable.role, "admin"),
+        eq(usersTable.phone, "0799999999"),
+        eq(usersTable.phone, "admin")
+      ),
+    });
+
+    if (!existingAdmin) {
+      console.log("[DB] Seeding default admin user (0799999999 / Admin1234!)...");
+      const passwordHash = await bcrypt.hash("Admin1234!", 10);
+      await db.insert(usersTable).values({
+        id: "admin-system-user-id",
+        phone: "0799999999",
+        passwordHash,
+        fullName: "مسؤول مسار (Admin)",
+        role: "admin",
+      });
+      console.log("[DB] Default admin user seeded successfully.");
+    }
+  } catch (err) {
+    console.error("[DB] Failed to seed default admin:", err);
+  }
+}
 
 export default router;

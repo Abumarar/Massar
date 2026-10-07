@@ -85,54 +85,58 @@ export default function ProfileScreen() {
           </>
         )}
 
-        <Text style={styles.sectionLabel}>{t('riderPricing')}</Text>
-        <View style={styles.pricingCard}>
-          <View style={styles.pricingHeader}>
-            <View style={styles.pricingIcon}>
-              <Feather name="sliders" size={17} color={colors.gold} />
-            </View>
-            <View style={styles.pricingCopy}>
-              <Text style={styles.pricingTitle}>{t('riderPricing')}</Text>
-              <Text style={styles.pricingDescription}>{t('riderPricingDescription')}</Text>
-            </View>
-          </View>
-          <PriceField
-            label={t('baseSeatPrice')}
-            value={pricing.baseFare}
-            onChange={(value) => updatePricing({ baseFare: value })}
-            colors={colors}
-            styles={styles}
-          />
-          <View style={styles.pricingFieldRow}>
-            <PriceField
-              label={t('discountThreeSeats')}
-              value={pricing.discount3}
-              onChange={(value) => updatePricing({ discount3: value })}
-              colors={colors}
-              styles={styles}
-            />
-            <PriceField
-              label={t('discountFourSeats')}
-              value={pricing.discount4}
-              onChange={(value) => updatePricing({ discount4: value })}
-              colors={colors}
-              styles={styles}
-            />
-          </View>
-          <Text style={styles.previewTitle}>{t('pricingPreview')}</Text>
-          <View style={styles.previewGrid}>
-            {[1, 2, 3, 4].map((count) => {
-              const quote = calculateFare(count, pricing);
-              return (
-                <View key={count} style={styles.previewItem}>
-                  <Text style={styles.previewSeats}>{count === 4 ? t('wholeCar') : `${count} ${count === 1 ? t('seat') : t('seats')}`}</Text>
-                  <Text style={styles.previewAmount}>{quote.total.toFixed(2)} JOD</Text>
+        {user?.role === 'captain' && (
+          <>
+            <Text style={styles.sectionLabel}>{t('riderPricing')}</Text>
+            <View style={styles.pricingCard}>
+              <View style={styles.pricingHeader}>
+                <View style={styles.pricingIcon}>
+                  <Feather name="sliders" size={17} color={colors.gold} />
                 </View>
-              );
-            })}
-          </View>
-          <Text style={styles.pricingRule}>{t('pricingRule')}</Text>
-        </View>
+                <View style={styles.pricingCopy}>
+                  <Text style={styles.pricingTitle}>{t('riderPricing')}</Text>
+                  <Text style={styles.pricingDescription}>{t('riderPricingDescription')}</Text>
+                </View>
+              </View>
+              <PriceField
+                label={t('baseSeatPrice')}
+                value={pricing.baseFare}
+                onChange={(value) => updatePricing({ baseFare: value })}
+                colors={colors}
+                styles={styles}
+              />
+              <View style={styles.pricingFieldRow}>
+                <PriceField
+                  label={t('discountThreeSeats')}
+                  value={pricing.discount3}
+                  onChange={(value) => updatePricing({ discount3: value })}
+                  colors={colors}
+                  styles={styles}
+                />
+                <PriceField
+                  label={t('discountFourSeats')}
+                  value={pricing.discount4}
+                  onChange={(value) => updatePricing({ discount4: value })}
+                  colors={colors}
+                  styles={styles}
+                />
+              </View>
+              <Text style={styles.previewTitle}>{t('pricingPreview')}</Text>
+              <View style={styles.previewGrid}>
+                {[1, 2, 3, 4].map((count) => {
+                  const quote = calculateFare(count, pricing);
+                  return (
+                    <View key={count} style={styles.previewItem}>
+                      <Text style={styles.previewSeats}>{count === 4 ? t('wholeCar') : `${count} ${count === 1 ? t('seat') : t('seats')}`}</Text>
+                      <Text style={styles.previewAmount}>{quote.total.toFixed(2)} JOD</Text>
+                    </View>
+                  );
+                })}
+              </View>
+              <Text style={styles.pricingRule}>{t('pricingRule')}</Text>
+            </View>
+          </>
+        )}
 
         {user?.role === 'captain' && (
           <Pressable

@@ -96,11 +96,15 @@ router.get(
         orderBy: (t, { desc }) => [desc(t.createdAt)],
       });
 
+      const routes = await db.query.routesTable.findMany();
+      const routesMap = new Map(routes.map((r) => [r.id, r.name]));
+
       const mapped = requests.map((r) => ({
         id: r.id,
         passengerId: r.passengerId,
         matchedCaptainId: r.matchedCaptainId,
         routeId: r.routeId,
+        routeName: r.routeId ? (routesMap.get(r.routeId) || r.routeId) : (r.customSearchText || "رحلة خاصة"),
         status: r.status,
         type: (r as any).type ?? "standard",
         customSearchText: (r as any).customSearchText ?? null,
@@ -125,6 +129,7 @@ router.get(
           : undefined,
       }));
 
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.status(200).json(mapped);
     } catch (error) {
       console.error("GET /admin/ride-requests error:", error);

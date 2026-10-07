@@ -497,7 +497,7 @@ function RoutesPanel() {
 
 // ─── Overview page ────────────────────────────────────────────────────────────
 function Overview() {
-  const passengerQuery = useListPassengerRideRequests();
+  const passengerQuery = useListAdminRideRequests();
   const captainQuery = useListCaptainRideRequests();
   const routesQuery = useListRoutes();
 
@@ -601,7 +601,7 @@ function AllRideRequestsPage() {
 }
 
 function PassengerPage() {
-  const q = useListPassengerRideRequests();
+  const q = useListAdminRideRequests();
   return (
     <div className="ops-fade-in">
       <RideRequestsPanel

@@ -69,9 +69,12 @@ router.post("/passenger/ride-requests", authenticateToken, isPassenger, validate
     if (captainId) {
       getIO().to(captainId).emit("new_ride_request", request);
     }
+    getIO().emit("ride-requested", request);
 
+    console.log("[RIDE_REQUEST_CREATED]", { requestId, passengerId, routeId, type });
     res.status(201).json(request);
   } catch (error) {
+    console.error("CREATE_RIDE_REQUEST_ERROR:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -17,6 +17,21 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useListRoutes, useCreatePassengerRideRequest } from '@workspace/api-client-react';
 import type { Route } from '@workspace/api-client-react';
 
+const DEFAULT_JORDAN_ROUTES: Route[] = [
+  { id: 'route-amman-jerash', name: 'عمان ⇄ جرش (Amman - Jerash)', origin: 'عمان', destination: 'جرش', baseFare: 2.5 },
+  { id: 'route-jerash-amman', name: 'جرش ⇄ عمان (Jerash - Amman)', origin: 'جرش', destination: 'عمان', baseFare: 2.5 },
+  { id: 'route-amman-irbid', name: 'عمان ⇄ إربد (Amman - Irbid)', origin: 'عمان', destination: 'إربد', baseFare: 3.5 },
+  { id: 'route-irbid-amman', name: 'إربد ⇄ عمان (Irbid - Amman)', origin: 'إربد', destination: 'عمان', baseFare: 3.5 },
+  { id: 'route-amman-zarqa', name: 'عمان ⇄ الزرقاء (Amman - Zarqa)', origin: 'عمان', destination: 'الزرقاء', baseFare: 1.5 },
+  { id: 'route-zarqa-amman', name: 'الزرقاء ⇄ عمان (Zarqa - Amman)', origin: 'الزرقاء', destination: 'عمان', baseFare: 1.5 },
+  { id: 'route-amman-salt', name: 'عمان ⇄ السلط (Amman - Salt)', origin: 'عمان', destination: 'السلط', baseFare: 2.0 },
+  { id: 'route-salt-amman', name: 'السلط ⇄ عمان (Salt - Amman)', origin: 'السلط', destination: 'عمان', baseFare: 2.0 },
+  { id: 'route-amman-madaba', name: 'عمان ⇄ مأدبا (Amman - Madaba)', origin: 'عمان', destination: 'مأدبا', baseFare: 2.0 },
+  { id: 'route-madaba-amman', name: 'مأدبا ⇄ عمان (Madaba - Amman)', origin: 'مأدبا', destination: 'عمان', baseFare: 2.0 },
+  { id: 'route-amman-aqaba', name: 'عمان ⇄ العقبة (Amman - Aqaba)', origin: 'عمان', destination: 'العقبة', baseFare: 10.0 },
+  { id: 'route-aqaba-amman', name: 'العقبة ⇄ عمان (Aqaba - Amman)', origin: 'العقبة', destination: 'عمان', baseFare: 10.0 },
+];
+
 export default function RequestRideScreen() {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -24,13 +39,21 @@ export default function RequestRideScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
-  const [seats, setSeats] = useState(1);
-
   const routesQuery = useListRoutes();
   const createMutation = useCreatePassengerRideRequest();
 
-  const routes = routesQuery.data ?? [];
+  const routes = (routesQuery.data && routesQuery.data.length > 0)
+    ? routesQuery.data
+    : DEFAULT_JORDAN_ROUTES;
+
+  const [selectedRoute, setSelectedRoute] = useState<Route | null>(() => routes[0] ?? null);
+  const [seats, setSeats] = useState(1);
+
+  React.useEffect(() => {
+    if (!selectedRoute && routes.length > 0) {
+      setSelectedRoute(routes[0]);
+    }
+  }, [routes, selectedRoute]);
 
   const handleSubmit = async () => {
     if (!selectedRoute) {

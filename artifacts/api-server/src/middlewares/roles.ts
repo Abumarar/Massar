@@ -17,6 +17,6 @@ export const requireRole = (roles: string[]) => {
   };
 };
 
-export const isPassenger = requireRole(["passenger", "admin"]);
+export const isPassenger = requireRole(["passenger", "captain", "admin"]);
 export const isCaptain = requireRole(["captain", "admin"]);
 export const isAdmin = requireRole(["admin"]);

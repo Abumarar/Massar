@@ -105,11 +105,19 @@ export default function DriverDashboardScreen() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/')} style={styles.backBtn}>
-          <Feather name={isRTL ? "arrow-right" : "arrow-left"} size={24} color={colors.ink} />
+        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)' as any)} style={styles.backBtn}>
+          <Feather name={isRTL ? "arrow-right" : "arrow-left"} size={22} color={colors.ink} />
         </Pressable>
         <Text style={styles.headerTitle}>{copy.title}</Text>
-        <View style={{ width: 24 }} />
+        <Pressable 
+          onPress={() => router.push('/(tabs)' as any)} 
+          style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.goldSoft, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, gap: 4 }}
+        >
+          <Feather name="user" size={14} color={colors.gold} />
+          <Text style={{ color: colors.gold, fontSize: 12, fontWeight: '700' }}>
+            {isRTL ? 'وضع الراكب' : 'Passenger'}
+          </Text>
+        </Pressable>
       </View>
       
       <ScrollView 
