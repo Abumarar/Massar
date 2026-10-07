@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { I18nManager, NativeModules, Platform } from 'react-native';
 
 export type Language = 'en' | 'ar';
 
-type TranslationKey =
+export type TranslationKey =
   | 'tagline'
   | 'home'
   | 'trips'
@@ -72,7 +73,56 @@ type TranslationKey =
   | 'wholeCar'
   | 'pricingRule'
   | 'languageEnglish'
-  | 'languageArabic';
+  | 'languageArabic'
+  // Auth & Onboarding keys
+  | 'welcomeToMassar'
+  | 'welcomeSubtitle'
+  | 'passengerRole'
+  | 'passengerRoleDesc'
+  | 'captainRole'
+  | 'captainRoleDesc'
+  | 'chooseAccountType'
+  | 'continueButton'
+  | 'passengerLoginTitle'
+  | 'passengerLoginSub'
+  | 'captainLoginTitle'
+  | 'captainLoginSub'
+  | 'passengerRegisterTitle'
+  | 'passengerRegisterSub'
+  | 'captainRegisterTitle'
+  | 'captainRegisterSub'
+  | 'phoneNumber'
+  | 'phonePlaceholder'
+  | 'password'
+  | 'passwordPlaceholder'
+  | 'passwordRegisterPlaceholder'
+  | 'fullName'
+  | 'fullNamePlaceholder'
+  | 'logIn'
+  | 'signUp'
+  | 'dontHaveAccount'
+  | 'alreadyHaveAccount'
+  | 'signUpPassenger'
+  | 'signUpCaptain'
+  | 'switchToCaptain'
+  | 'switchToPassenger'
+  | 'areYouCaptain'
+  | 'areYouPassenger'
+  | 'enterPhoneAndPassword'
+  | 'fillAllFields'
+  | 'loginFailed'
+  | 'registrationFailed'
+  | 'invalidCredentials'
+  | 'back'
+  | 'logout'
+  | 'confirmLogout'
+  | 'cancel'
+  | 'switchLanguage'
+  | 'adminArea'
+  | 'adminDashboard'
+  | 'jordan'
+  | 'fastSafeReliable'
+  | 'verifiedFleet';
 
 const translations: Record<Language, Record<TranslationKey, string>> = {
   en: {
@@ -145,6 +195,55 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     pricingRule: 'More seats always cost more. Discounts only reduce the normal total.',
     languageEnglish: 'English',
     languageArabic: 'العربية',
+    // Auth & Onboarding
+    welcomeToMassar: 'Welcome to Massar',
+    welcomeSubtitle: 'Smart and reliable intercity ride-sharing across Jordan.',
+    passengerRole: 'Passenger',
+    passengerRoleDesc: 'Book seats, travel smoothly, and enjoy transparent pricing.',
+    captainRole: 'Captain (Driver)',
+    captainRoleDesc: 'Register your vehicle, share rides, and earn reliable income.',
+    chooseAccountType: 'How would you like to continue?',
+    continueButton: 'Continue',
+    passengerLoginTitle: 'Passenger Login',
+    passengerLoginSub: 'Log in to book and track your intercity rides.',
+    captainLoginTitle: 'Captain Login',
+    captainLoginSub: 'Log in to manage trips and receive ride requests.',
+    passengerRegisterTitle: 'Create Passenger Account',
+    passengerRegisterSub: 'Join Massar and travel comfortably across Jordan.',
+    captainRegisterTitle: 'Create Captain Account',
+    captainRegisterSub: 'Drive with Massar, connect with riders, and earn.',
+    phoneNumber: 'Phone Number',
+    phonePlaceholder: '07XXXXXXXX',
+    password: 'Password',
+    passwordPlaceholder: 'Enter your password',
+    passwordRegisterPlaceholder: 'Create a password (min 6 characters)',
+    fullName: 'Full Name',
+    fullNamePlaceholder: 'e.g. Ahmad Al-Khatib',
+    logIn: 'Log in',
+    signUp: 'Sign up',
+    dontHaveAccount: "Don't have an account?",
+    alreadyHaveAccount: 'Already have an account?',
+    signUpPassenger: 'Sign up as Passenger',
+    signUpCaptain: 'Sign up as Captain',
+    switchToCaptain: 'Sign in as Captain',
+    switchToPassenger: 'Sign in as Passenger',
+    areYouCaptain: 'Are you a Captain?',
+    areYouPassenger: 'Are you a Passenger?',
+    enterPhoneAndPassword: 'Please enter your phone number and password',
+    fillAllFields: 'Please fill in all required fields',
+    loginFailed: 'Login Failed',
+    registrationFailed: 'Registration Failed',
+    invalidCredentials: 'Invalid credentials. Please verify your phone number and password.',
+    back: 'Back',
+    logout: 'Log out',
+    confirmLogout: 'Are you sure you want to log out?',
+    cancel: 'Cancel',
+    switchLanguage: 'Change Language',
+    adminArea: 'Admin Area',
+    adminDashboard: 'Admin Dashboard',
+    jordan: 'Jordan',
+    fastSafeReliable: 'Fast · Safe · Fair Pricing',
+    verifiedFleet: 'Verified Fleet',
   },
   ar: {
     tagline: 'توصلها بثقة',
@@ -216,30 +315,150 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     pricingRule: 'كلما زاد عدد المقاعد زادت التكلفة. الخصم يقلّل السعر العادي فقط.',
     languageEnglish: 'English',
     languageArabic: 'العربية',
+    // Auth & Onboarding
+    welcomeToMassar: 'أهلاً بك في مسار',
+    welcomeSubtitle: 'منصتك الذكية للتنقل اليومي المشترك بين محافظات المملكة.',
+    passengerRole: 'الراكب',
+    passengerRoleDesc: 'احجز مقعدك وتنقل بكل راحة وسرعة وتسعيرة عادلة.',
+    captainRole: 'الكابتن (السائق)',
+    captainRoleDesc: 'سجّل مركبتك وشارك المقاعد الفارغة وحقق دخلاً موثوقاً.',
+    chooseAccountType: 'كيف تود المتابعة اليوم؟',
+    continueButton: 'متابعة',
+    passengerLoginTitle: 'تسجيل دخول الراكب',
+    passengerLoginSub: 'سجّل دخولك لمتابعة وحجز رحلاتك بين المحافظات.',
+    captainLoginTitle: 'تسجيل دخول الكابتن',
+    captainLoginSub: 'سجّل دخولك لبدء إدارة رحلاتك واستقبال الركاب.',
+    passengerRegisterTitle: 'إنشاء حساب راكب جديد',
+    passengerRegisterSub: 'انضم إلى مسار واستمتع برحلات مريحة وآمنة.',
+    captainRegisterTitle: 'إنشاء حساب كابتن جديد',
+    captainRegisterSub: 'انضم لأسطول كباتن مسار المعتمدين وحقق أرباحاً إضافية.',
+    phoneNumber: 'رقم الهاتف',
+    phonePlaceholder: '07XXXXXXXX',
+    password: 'كلمة المرور',
+    passwordPlaceholder: 'أدخل كلمة المرور',
+    passwordRegisterPlaceholder: 'أنشئ كلمة مرور قوية (6 خانات على الأقل)',
+    fullName: 'الاسم الكامل',
+    fullNamePlaceholder: 'مثال: أحمد الخطيب',
+    logIn: 'تسجيل الدخول',
+    signUp: 'إنشاء الحساب',
+    dontHaveAccount: 'ليس لديك حساب؟',
+    alreadyHaveAccount: 'لديك حساب بالفعل؟',
+    signUpPassenger: 'إنشاء حساب راكب',
+    signUpCaptain: 'إنشاء حساب كابتن',
+    switchToCaptain: 'الدخول ككابتن',
+    switchToPassenger: 'الدخول كراكب',
+    areYouCaptain: 'هل أنت كابتن؟',
+    areYouPassenger: 'هل أنت راكب؟',
+    enterPhoneAndPassword: 'يرجى إدخال رقم الهاتف وكلمة المرور',
+    fillAllFields: 'يرجى ملء جميع الحقول المطلوبة',
+    loginFailed: 'فشل تسجيل الدخول',
+    registrationFailed: 'فشل إنشاء الحساب',
+    invalidCredentials: 'بيانات الدخول غير صحيحة، يرجى التأكد من الرقم وكلمة المرور.',
+    back: 'رجوع',
+    logout: 'تسجيل الخروج',
+    confirmLogout: 'هل أنت متأكد من رغبتك في تسجيل الخروج؟',
+    cancel: 'إلغاء',
+    switchLanguage: 'تغيير اللغة',
+    adminArea: 'منطقة الإدارة',
+    adminDashboard: 'لوحة التحكم الإدارية',
+    jordan: 'الأردن',
+    fastSafeReliable: 'سريع · آمن · تسعيرة عادلة',
+    verifiedFleet: 'أسطول موثّق',
   },
 };
+
+const STORAGE_KEY = '@massar/language';
+
+/**
+ * Detects the phone's native locale/language preferences.
+ * Checks expo-localization, Intl, and React Native NativeModules in order.
+ */
+export function getDeviceDefaultLanguage(): Language {
+  // 1. Try expo-localization
+  try {
+    const Localization = require('expo-localization');
+    const locales = Localization.getLocales?.();
+    if (locales && locales.length > 0) {
+      const code = locales[0].languageCode?.toLowerCase();
+      if (code && code.startsWith('ar')) return 'ar';
+      if (code && code.startsWith('en')) return 'en';
+    }
+  } catch {
+    // Ignore and proceed to next check
+  }
+
+  // 2. Try Intl (Standard in Hermes / React Native engine)
+  try {
+    if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
+      const locale = Intl.DateTimeFormat().resolvedOptions().locale.toLowerCase();
+      if (locale.startsWith('ar')) return 'ar';
+      if (locale.startsWith('en')) return 'en';
+    }
+  } catch {
+    // Ignore and proceed to next check
+  }
+
+  // 3. Try NativeModules (I18nManager / SettingsManager)
+  try {
+    const deviceLocale =
+      Platform.OS === 'ios'
+        ? NativeModules?.SettingsManager?.settings?.AppleLocale ||
+          NativeModules?.SettingsManager?.settings?.AppleLanguages?.[0]
+        : NativeModules?.I18nManager?.localeIdentifier;
+
+    if (typeof deviceLocale === 'string') {
+      const lower = deviceLocale.toLowerCase();
+      if (lower.startsWith('ar')) return 'ar';
+      if (lower.startsWith('en')) return 'en';
+    }
+  } catch {
+    // Fallback
+  }
+
+  return 'ar'; // Default fallback for Jordan/Massar if undetectable
+}
 
 type LanguageContextValue = {
   language: Language;
   isRTL: boolean;
   setLanguage: (language: Language) => void;
-  t: (key: TranslationKey) => string;
+  toggleLanguage: () => void;
+  t: (key: TranslationKey | string) => string;
 };
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('ar');
+  // Initialize with device's system preference first
+  const [language, setLanguageState] = useState<Language>(() => getDeviceDefaultLanguage());
 
   useEffect(() => {
-    void AsyncStorage.getItem('@massar/language').then((saved) => {
-      if (saved === 'en' || saved === 'ar') setLanguageState(saved);
-    });
+    // Check if user has explicitly saved a preference in AsyncStorage
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((saved) => {
+        if (saved === 'en' || saved === 'ar') {
+          setLanguageState(saved);
+        } else {
+          // No saved preference -> adhere strictly to the phone's preference
+          const detected = getDeviceDefaultLanguage();
+          setLanguageState(detected);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const setLanguage = (nextLanguage: Language) => {
     setLanguageState(nextLanguage);
-    void AsyncStorage.setItem('@massar/language', nextLanguage);
+    void AsyncStorage.setItem(STORAGE_KEY, nextLanguage);
+    try {
+      I18nManager.allowRTL(nextLanguage === 'ar');
+    } catch {
+      // Ignore
+    }
+  };
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'ar' ? 'en' : 'ar');
   };
 
   const value = useMemo(
@@ -247,7 +466,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       language,
       isRTL: language === 'ar',
       setLanguage,
-      t: (key: TranslationKey) => translations[language][key],
+      toggleLanguage,
+      t: (key: TranslationKey | string) => {
+        const langDict = translations[language] as Record<string, string>;
+        if (langDict && langDict[key]) return langDict[key];
+        const enDict = translations.en as Record<string, string>;
+        if (enDict && enDict[key]) return enDict[key];
+        return key;
+      },
     }),
     [language],
   );

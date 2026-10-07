@@ -37,7 +37,7 @@ router.put(
   isAdmin,
   async (req: AuthRequest, res) => {
     try {
-      const { id } = req.params;
+      const id = String(req.params.id);
       const { status, reviewNote } = req.body;
 
       const ALLOWED = ["pending", "in_review", "approved", "rejected", "suspended"];

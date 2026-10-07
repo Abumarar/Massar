@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +14,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { t, language, isRTL, setLanguage } = useLanguage();
   const { pricing, updatePricing } = usePricing();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
 
@@ -26,13 +26,17 @@ export default function ProfileScreen() {
 
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>MA</Text>
+            <Text style={styles.avatarText}>
+              {user?.fullName ? user.fullName.slice(0, 2).toUpperCase() : 'MA'}
+            </Text>
           </View>
           <View style={styles.profileCopy}>
-            <Text style={styles.name}>Massar passenger</Text>
-            <Text style={styles.phone}>{t('passengerMode')}</Text>
+            <Text style={styles.name}>{user?.fullName || (isRTL ? 'مستخدم مسار' : 'Massar User')}</Text>
+            <Text style={styles.phone}>
+              {user?.phone ? user.phone : user?.role === 'captain' ? t('captainRole') : t('passengerMode')}
+            </Text>
           </View>
-          <Feather name="edit-2" size={17} color={colors.goldLight} />
+          <Feather name="shield" size={17} color={colors.goldLight} />
         </View>
 
         <Text style={styles.sectionLabel}>{t('preferences')}</Text>
@@ -130,6 +134,22 @@ export default function ProfileScreen() {
           <Text style={styles.pricingRule}>{t('pricingRule')}</Text>
         </View>
 
+        {user?.role === 'captain' && (
+          <Pressable
+            style={styles.captainShortcut}
+            onPress={() => router.push('/driver-dashboard' as any)}
+          >
+            <View style={styles.captainShortcutIcon}>
+              <Feather name="navigation" size={18} color={colors.gold} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.captainShortcutTitle}>{isRTL ? 'لوحة تحكم الكابتن' : 'Captain Dashboard'}</Text>
+              <Text style={styles.captainShortcutSub}>{isRTL ? 'إدارة رحلاتك وطلبات الركاب' : 'Manage your rides and requests'}</Text>
+            </View>
+            <Feather name={isRTL ? 'chevron-left' : 'chevron-right'} size={18} color={colors.gold} />
+          </Pressable>
+        )}
+
         <View style={styles.brandCard}>
           <Image source={require('@/assets/images/icon.png')} style={styles.brandMark} />
           <View style={styles.brandCopy}>
@@ -137,6 +157,32 @@ export default function ProfileScreen() {
             <Text style={styles.brandText}>{t('tagline')}</Text>
           </View>
         </View>
+
+        <Pressable
+          style={[styles.logoutBtn, { borderColor: colors.destructive }]}
+          onPress={() => {
+            Alert.alert(
+              t('logout'),
+              t('confirmLogout'),
+              [
+                { text: t('cancel'), style: 'cancel' },
+                {
+                  text: t('logout'),
+                  style: 'destructive',
+                  onPress: async () => {
+                    await logout();
+                    router.replace('/(auth)' as any);
+                  },
+                },
+              ],
+            );
+          }}
+        >
+          <Feather name="log-out" size={17} color={colors.destructive} style={{ marginRight: 8 }} />
+          <Text style={[styles.logoutBtnText, { color: colors.destructive }]}>
+            {t('logout')}
+          </Text>
+        </Pressable>
       </ScrollView>
     </View>
   );
@@ -249,4 +295,10 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
     previewSeats: { color: colors.mutedForeground, fontSize: 9, textAlign: 'center' },
     previewAmount: { color: colors.gold, fontSize: 11, fontWeight: '800', marginTop: 3 },
     pricingRule: { color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 10 },
+    captainShortcut: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.gold, borderRadius: 20, padding: 16, marginTop: 18, gap: 12 },
+    captainShortcutIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.goldSoft, alignItems: 'center', justifyContent: 'center' },
+    captainShortcutTitle: { color: colors.ink, fontSize: 14, fontWeight: '800' },
+    captainShortcutSub: { color: colors.mutedForeground, fontSize: 11, marginTop: 3 },
+    logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, borderWidth: 1, borderRadius: 16, paddingVertical: 14, marginTop: 24 },
+    logoutBtnText: { fontSize: 14, fontWeight: '800' },
   });

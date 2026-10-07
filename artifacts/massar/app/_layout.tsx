@@ -26,7 +26,6 @@ SplashScreen.preventAutoHideAsync();
 setBaseUrl(process.env.EXPO_PUBLIC_API_URL || 'https://d3225dxeajx9t8.cloudfront.net');
 
 I18nManager.allowRTL(true);
-I18nManager.forceRTL(true);
 
 const queryClient = new QueryClient();
 
@@ -42,7 +41,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     const inAuthGroup = (segments[0] as any) === '(auth)';
 
     if (!user && !inAuthGroup) {
-      router.replace('/(auth)/login' as any);
+      router.replace('/(auth)' as any);
     } else if (user && inAuthGroup) {
       router.replace('/');
     }
