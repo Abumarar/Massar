@@ -27,33 +27,48 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    let activeSocket: Socket | null = null;
+    let isCancelled = false;
+
     const initSocket = async () => {
-      const token = await SecureStore.getItemAsync('massar_jwt');
-      const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://d3225dxeajx9t8.cloudfront.net';
+      try {
+        const token = await SecureStore.getItemAsync('massar_jwt');
+        if (isCancelled) return;
+        const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://d3225dxeajx9t8.cloudfront.net';
 
-      const newSocket = io(baseUrl, {
-        auth: { token },
-        transports: ['websocket'],
-      });
+        activeSocket = io(baseUrl, {
+          auth: { token },
+          transports: ['websocket', 'polling'],
+          timeout: 10000,
+          reconnectionAttempts: 5,
+        });
 
-      newSocket.on('connect', () => {
-        console.log('Connected to socket server:', newSocket.id);
-        setIsConnected(true);
-      });
+        activeSocket.on('connect', () => {
+          if (!isCancelled) setIsConnected(true);
+        });
 
-      newSocket.on('disconnect', () => {
-        console.log('Disconnected from socket server');
-        setIsConnected(false);
-      });
+        activeSocket.on('disconnect', () => {
+          if (!isCancelled) setIsConnected(false);
+        });
 
-      setSocket(newSocket);
+        activeSocket.on('connect_error', () => {
+          if (!isCancelled) setIsConnected(false);
+        });
+
+        if (!isCancelled) {
+          setSocket(activeSocket);
+        }
+      } catch (err) {
+        console.warn('Socket initialization failed (non-critical):', err);
+      }
     };
 
-    initSocket();
+    void initSocket();
 
     return () => {
-      if (socket) {
-        socket.disconnect();
+      isCancelled = true;
+      if (activeSocket) {
+        activeSocket.disconnect();
       }
     };
   }, [user, isLoading]);

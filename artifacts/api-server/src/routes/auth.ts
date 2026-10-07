@@ -3,12 +3,25 @@ import { validateRequest } from "../middlewares/validate";
 import { RegisterBody, LoginBody } from "@workspace/api-zod";
 import { db } from "@workspace/db";
 import { usersTable, captainsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_for_development";
+
+function normalizePhone(raw: string): string {
+  if (!raw) return '';
+  let clean = raw.trim().replace(/[\s\-\(\)\.]/g, '');
+  if (clean.startsWith('+962')) {
+    clean = '0' + clean.slice(4);
+  } else if (clean.startsWith('962')) {
+    clean = '0' + clean.slice(3);
+  } else if (clean.startsWith('7') && clean.length === 9) {
+    clean = '0' + clean;
+  }
+  return clean;
+}
 
 export interface AuthRequest extends Request {
   user?: {
@@ -40,10 +53,13 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
 router.post("/auth/register", validateRequest({ body: RegisterBody }), async (req, res) => {
   try {
     const { phone, password, fullName, role } = req.body;
-
+    const normalizedPhone = normalizePhone(phone);
 
     const existingUser = await db.query.usersTable.findFirst({
-      where: eq(usersTable.phone, phone),
+      where: or(
+        eq(usersTable.phone, normalizedPhone),
+        eq(usersTable.phone, phone.trim())
+      ),
     });
 
     if (existingUser) {
@@ -56,18 +72,18 @@ router.post("/auth/register", validateRequest({ body: RegisterBody }), async (re
 
     await db.insert(usersTable).values({
       id: userId,
-      phone,
+      phone: normalizedPhone,
       passwordHash,
-      fullName,
+      fullName: fullName.trim(),
       role,
     });
 
     // Auto login
-    const token = jwt.sign({ id: userId, phone, role }, JWT_SECRET, { expiresIn: "30d" });
+    const token = jwt.sign({ id: userId, phone: normalizedPhone, role }, JWT_SECRET, { expiresIn: "30d" });
 
     res.status(200).json({
       token,
-      user: { id: userId, phone, fullName, role },
+      user: { id: userId, phone: normalizedPhone, fullName: fullName.trim(), role },
     });
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
@@ -77,9 +93,13 @@ router.post("/auth/register", validateRequest({ body: RegisterBody }), async (re
 router.post("/auth/login", validateRequest({ body: LoginBody }), async (req, res) => {
   try {
     const { phone, password } = req.body;
+    const normalizedPhone = normalizePhone(phone);
 
     const user = await db.query.usersTable.findFirst({
-      where: eq(usersTable.phone, phone),
+      where: or(
+        eq(usersTable.phone, normalizedPhone),
+        eq(usersTable.phone, phone.trim())
+      ),
       with: {
         captainProfile: true,
       },

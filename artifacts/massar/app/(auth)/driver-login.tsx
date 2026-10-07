@@ -20,6 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
 import { LanguageSwitchButton } from '@/components/LanguageSwitchButton';
+import { normalizePhone } from '@/utils/phone';
 
 export default function DriverLoginScreen() {
   const [phone, setPhone] = useState('');
@@ -34,7 +35,7 @@ export default function DriverLoginScreen() {
   const { t, isRTL } = useLanguage();
 
   const handleLogin = async () => {
-    const cleanPhone = phone.trim();
+    const cleanPhone = normalizePhone(phone);
     if (!cleanPhone || !password) {
       Alert.alert(t('loginFailed'), t('enterPhoneAndPassword'));
       return;
@@ -46,7 +47,7 @@ export default function DriverLoginScreen() {
     try {
       await login({ phone: cleanPhone, password });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace('/');
+      router.replace('/driver-dashboard' as any);
     } catch (error: any) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert(

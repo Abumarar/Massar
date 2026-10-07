@@ -19,6 +19,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
 import { LanguageSwitchButton } from '@/components/LanguageSwitchButton';
+import { normalizePhone } from '@/utils/phone';
 
 export default function PassengerRegisterScreen() {
   const [fullName, setFullName] = useState('');
@@ -35,7 +36,7 @@ export default function PassengerRegisterScreen() {
 
   const handleRegister = async () => {
     const cleanName = fullName.trim();
-    const cleanPhone = phone.trim();
+    const cleanPhone = normalizePhone(phone);
 
     if (!cleanName || !cleanPhone || !password) {
       Alert.alert(t('registrationFailed'), t('fillAllFields'));
@@ -48,7 +49,7 @@ export default function PassengerRegisterScreen() {
     try {
       await register({ fullName: cleanName, phone: cleanPhone, password, role: 'passenger' });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace('/');
+      router.replace('/(tabs)' as any);
     } catch (error: any) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert(t('registrationFailed'), error?.message || t('invalidCredentials'));

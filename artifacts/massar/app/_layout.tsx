@@ -38,12 +38,17 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = (segments[0] as any) === '(auth)';
+    const rootSegment = segments[0] as string | undefined;
+    const inAuthGroup = rootSegment === '(auth)';
 
-    if (!user && !inAuthGroup) {
+    if (!user && !inAuthGroup && rootSegment !== undefined) {
       router.replace('/(auth)' as any);
     } else if (user && inAuthGroup) {
-      router.replace('/');
+      if (user.role === 'captain') {
+        router.replace('/driver-dashboard' as any);
+      } else {
+        router.replace('/(tabs)' as any);
+      }
     }
   }, [user, isLoading, segments]);
 
@@ -61,9 +66,15 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerBackTitle: 'Back', headerShown: false }}>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="driver-dashboard" options={{ headerShown: false }} />
       <Stack.Screen name="driver" options={{ headerShown: false }} />
+      <Stack.Screen name="admin-dashboard" options={{ headerShown: false }} />
+      <Stack.Screen name="request-ride" options={{ headerShown: false }} />
+      <Stack.Screen name="request-airport" options={{ headerShown: false }} />
+      <Stack.Screen name="request-custom" options={{ headerShown: false }} />
     </Stack>
   );
 }
