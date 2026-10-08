@@ -1,11 +1,12 @@
-import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '@/context/LanguageContext';
+import { useListPassengerRideRequests } from '@workspace/api-client-react';
 
 type StoredTrip = {
   id: string;
@@ -23,29 +24,112 @@ export default function TripsScreen() {
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const { t, isRTL } = useLanguage();
-  const [trips, setTrips] = useState<StoredTrip[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [localTrips, setLocalTrips] = useState<StoredTrip[]>([]);
+  const [localLoading, setLocalLoading] = useState(true);
 
-  const loadTrips = useCallback(async () => {
-    setLoading(true);
-    const saved = await AsyncStorage.getItem('@massar/trips');
-    setTrips(saved ? JSON.parse(saved) : []);
-    setLoading(false);
+  const { data: serverRequests, isLoading: serverLoading, isRefetching, refetch } = useListPassengerRideRequests();
+
+  const loadLocalTrips = useCallback(async () => {
+    setLocalLoading(true);
+    try {
+      const saved = await AsyncStorage.getItem('@massar/trips');
+      setLocalTrips(saved ? JSON.parse(saved) : []);
+    } catch {
+      setLocalTrips([]);
+    } finally {
+      setLocalLoading(false);
+    }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      void loadTrips();
-    }, [loadTrips]),
+      void loadLocalTrips();
+      void refetch();
+    }, [loadLocalTrips, refetch]),
   );
 
+  const trips: StoredTrip[] = useMemo(() => {
+    const list: StoredTrip[] = [];
+    const seenIds = new Set<string>();
+
+    if (Array.isArray(serverRequests)) {
+      for (const req of serverRequests as any[]) {
+        seenIds.add(req.id);
+        const captainName = req.matchedCaptain?.user?.fullName || (isRTL ? 'كابتن مسار' : 'Massar Captain');
+        const vehicleModel = req.matchedCaptain?.vehicle?.makeModel || (isRTL ? 'مركبة مسار' : 'Massar Vehicle');
+        let routeName = req.customSearchText;
+        if (!routeName) {
+          if (req.type === 'airport') {
+            routeName = isRTL ? 'مطار الملكة علياء الدولي' : 'Queen Alia Int. Airport';
+          } else if (req.routeId === 'route-amman-jerash' || req.routeId === 'amman-jerash') {
+            routeName = isRTL ? 'عمان ⇄ جرش' : 'Amman ⇄ Jerash';
+          } else {
+            routeName = isRTL ? 'رحلة بين المحافظات' : 'Intercity Ride';
+          }
+        }
+
+        list.push({
+          id: req.id,
+          captain: captainName,
+          vehicle: vehicleModel,
+          route: routeName,
+          seats: req.seatsRequested ?? 1,
+          fare: req.estimatedFare ?? (req.type === 'airport' ? 20 : 2.5),
+          status: req.status || 'requested',
+          createdAt: req.createdAt || new Date().toISOString(),
+        });
+      }
+    }
+
+    for (const lt of localTrips) {
+      if (!seenIds.has(lt.id)) {
+        list.push(lt);
+      }
+    }
+
+    return list;
+  }, [serverRequests, localTrips, isRTL]);
+
+  const loading = (localLoading && !serverRequests) || (serverLoading && trips.length === 0);
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'requested':
+      case 'searching':
+        return isRTL ? 'قيد الانتظار' : 'Pending';
+      case 'accepted':
+      case 'matched':
+        return isRTL ? 'تم القبول' : 'Accepted';
+      case 'in_progress':
+        return isRTL ? 'جارية' : 'In Progress';
+      case 'completed':
+        return isRTL ? 'مكتملة' : 'Completed';
+      case 'cancelled':
+        return isRTL ? 'ملغية' : 'Cancelled';
+      default:
+        return status;
+    }
+  };
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomInset + 100 }]} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: bottomInset + 100 }]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={() => {
+              void refetch();
+              void loadLocalTrips();
+            }}
+            tintColor={colors.gold}
+          />
+        }
+      >
+        <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+          <View style={{ alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
             <Text style={styles.eyebrow}>{t('journal')}</Text>
             <Text style={styles.title}>{t('yourRides')}</Text>
           </View>
@@ -56,7 +140,7 @@ export default function TripsScreen() {
 
         {loading ? (
           <View style={styles.emptyState}>
-            <ActivityIndicator color={colors.gold} />
+            <ActivityIndicator color={colors.gold} size="large" />
           </View>
         ) : trips.length === 0 ? (
           <View style={styles.emptyState}>
@@ -69,24 +153,24 @@ export default function TripsScreen() {
         ) : (
           trips.map((trip) => (
             <View key={trip.id} style={styles.tripCard}>
-              <View style={styles.statusRow}>
-                <View style={styles.statusPill}>
-                  <View style={styles.statusDot} />
-                  <Text style={styles.statusText}>{trip.status}</Text>
+              <View style={[styles.statusRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                <View style={[styles.statusPill, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                  <View style={[styles.statusDot, isRTL ? { marginLeft: 6, marginRight: 0 } : { marginRight: 6 }]} />
+                  <Text style={styles.statusText}>{getStatusLabel(trip.status)}</Text>
                 </View>
                 <Text style={styles.dateText}>{new Date(trip.createdAt).toLocaleDateString()}</Text>
               </View>
-              <View style={styles.routeRow}>
-                <View style={styles.routeIcon}>
+              <View style={[styles.routeRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                <View style={[styles.routeIcon, isRTL ? { marginLeft: 11, marginRight: 0 } : { marginRight: 11 }]}>
                   <Feather name="navigation" size={19} color={colors.gold} />
                 </View>
-                <View style={styles.routeCopy}>
+                <View style={[styles.routeCopy, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
                   <Text style={styles.routeText}>{trip.route}</Text>
-                  <Text style={styles.routeMeta}>{trip.vehicle}</Text>
+                  <Text style={styles.routeMeta}>{trip.captain} · {trip.vehicle}</Text>
                 </View>
-                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+                <Feather name={isRTL ? "chevron-left" : "chevron-right"} size={18} color={colors.mutedForeground} />
               </View>
-              <View style={styles.tripFooter}>
+              <View style={[styles.tripFooter, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                 <Text style={styles.footerText}>{trip.seats} {trip.seats === 1 ? t('seat') : t('seats')}</Text>
                 <Text style={styles.footerFare}>{trip.fare.toFixed(2)} JOD</Text>
               </View>

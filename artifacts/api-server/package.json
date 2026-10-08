@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm run build && pnpm run start",
-    "build": "pnpm --filter @workspace/db run push && node ./build.mjs",
+    "build": "node ./build.mjs",
+    "db:push": "pnpm --filter @workspace/db run push",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

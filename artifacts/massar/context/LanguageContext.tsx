@@ -122,7 +122,27 @@ export type TranslationKey =
   | 'adminDashboard'
   | 'jordan'
   | 'fastSafeReliable'
-  | 'verifiedFleet';
+  | 'verifiedFleet'
+  | 'requestAirportTrip'
+  | 'airportTripSubtitle'
+  | 'needAirportRide'
+  | 'fixedPrice'
+  | 'confirmAirportRequest'
+  | 'searchForTrip'
+  | 'whereToGo'
+  | 'customTripSubtitle'
+  | 'destination'
+  | 'destinationPlaceholder'
+  | 'sendRequest'
+  | 'locationPermissionDenied'
+  | 'locationRequired'
+  | 'airportSuccess'
+  | 'customSuccess'
+  | 'enterDestination'
+  | 'required'
+  | 'success'
+  | 'error'
+  | 'requestSent';
 
 const translations: Record<Language, Record<TranslationKey, string>> = {
   en: {
@@ -244,6 +264,26 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     jordan: 'Jordan',
     fastSafeReliable: 'Fast · Safe · Fair Pricing',
     verifiedFleet: 'Verified Fleet',
+    requestAirportTrip: 'Request Airport Trip',
+    airportTripSubtitle: 'Our admins will find the nearest available captain for you. The price is fixed at 20 JOD.',
+    needAirportRide: 'Need a ride to the airport?',
+    fixedPrice: 'Fixed Price',
+    confirmAirportRequest: 'Confirm Request',
+    searchForTrip: 'Search for a Trip',
+    whereToGo: 'Where do you want to go?',
+    customTripSubtitle: 'Tell us your destination and an admin will find a captain for you.',
+    destination: 'Destination',
+    destinationPlaceholder: 'e.g. Amman to Aqaba, Friday 10 AM',
+    sendRequest: 'Send Request',
+    locationPermissionDenied: 'Permission to access location was denied',
+    locationRequired: 'Location is required to request a trip.',
+    airportSuccess: 'Airport trip requested successfully. An admin will assign a captain shortly.',
+    customSuccess: 'Your custom trip request has been sent to the admins. A captain will be assigned to you soon.',
+    enterDestination: 'Please enter your destination',
+    required: 'Required',
+    success: 'Success',
+    error: 'Error',
+    requestSent: 'Request Sent',
   },
   ar: {
     tagline: 'توصلها بثقة',
@@ -364,6 +404,26 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     jordan: 'الأردن',
     fastSafeReliable: 'سريع · آمن · تسعيرة عادلة',
     verifiedFleet: 'أسطول موثّق',
+    requestAirportTrip: 'طلب توصيلة مطار',
+    airportTripSubtitle: 'سيقوم المشرفون بتعيين أقرب كابتن متاح لك. السعر ثابت 20 دينار.',
+    needAirportRide: 'هل تحتاج إلى توصيلة للمطار؟',
+    fixedPrice: 'السعر الثابت:',
+    confirmAirportRequest: 'تأكيد طلب التوصيلة',
+    searchForTrip: 'طلب رحلة خاصة',
+    whereToGo: 'إلى أين تريد الذهاب؟',
+    customTripSubtitle: 'أخبرنا بوجهتك وسيقوم المشرف بتعيين كابتن مناسب لك.',
+    destination: 'الوجهة',
+    destinationPlaceholder: 'مثال: من عمان إلى العقبة، الجمعة 10 صباحاً',
+    sendRequest: 'إرسال الطلب',
+    locationPermissionDenied: 'تم رفض إذن الوصول إلى الموقع',
+    locationRequired: 'الموقع الجغرافي مطلوب لطلب الرحلة.',
+    airportSuccess: 'تم طلب توصيلة المطار بنجاح. سيتم تعيين كابتن لك في أقرب وقت.',
+    customSuccess: 'تم إرسال طلب رحلتك الخاصة إلى الإدارة. سيتم تعيين كابتن لك قريباً.',
+    enterDestination: 'يرجى إدخال الوجهة المطلوبة',
+    required: 'حقل مطلوب',
+    success: 'تم بنجاح',
+    error: 'خطأ',
+    requestSent: 'تم إرسال الطلب',
   },
 };
 

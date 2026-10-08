@@ -6,16 +6,32 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
 import { useListAdminRideRequests } from '@workspace/api-client-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AdminDashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isRTL } = useLanguage();
+  const { user } = useAuth();
 
   const [activeFilter, setActiveFilter] = useState<'all' | 'standard' | 'airport' | 'custom'>('all');
 
-  const { data: requests, isLoading, isRefetching, refetch } = useListAdminRideRequests();
+  React.useEffect(() => {
+    if (user && user.role !== 'admin') {
+      Alert.alert(
+        isRTL ? 'غير مصرح' : 'Unauthorized',
+        isRTL
+          ? 'لوحة التحكم الإدارية مخصصة للمشرفين فقط.'
+          : 'The admin dashboard is restricted to administrators.',
+        [{ text: isRTL ? 'الرجوع' : 'Go Back', onPress: () => router.replace('/(tabs)' as any) }]
+      );
+    }
+  }, [user, isRTL]);
+
+  const { data: requests, isLoading, isRefetching, refetch } = useListAdminRideRequests({
+    query: { enabled: user?.role === 'admin' } as any,
+  });
 
   const allRequests = Array.isArray(requests) ? requests : [];
 

@@ -12,7 +12,7 @@ import {
 } from "@workspace/api-zod";
 import { db } from "@workspace/db";
 import { rideRequestsTable, routesTable, captainsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { authenticateToken, AuthRequest } from "./auth";
 import crypto from "crypto";
 import { getIO } from "../lib/socket";
@@ -30,8 +30,15 @@ router.post("/passenger/ride-requests", authenticateToken, isPassenger, validate
 
     let estimatedFare = 0;
     if (routeId) {
+      const cleanRouteId = routeId.trim();
+      const withPrefix = cleanRouteId.startsWith("route-") ? cleanRouteId : `route-${cleanRouteId}`;
+      const withoutPrefix = cleanRouteId.replace(/^route-/, "");
       const route = await db.query.routesTable.findFirst({
-        where: eq(routesTable.id, routeId),
+        where: or(
+          eq(routesTable.id, cleanRouteId),
+          eq(routesTable.id, withPrefix),
+          eq(routesTable.id, withoutPrefix)
+        ),
       });
       if (route) {
         estimatedFare = route.baseFare * seats;

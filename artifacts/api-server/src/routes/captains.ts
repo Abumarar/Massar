@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { captainsTable, vehiclesTable, usersTable, routesTable } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, or, sql } from "drizzle-orm";
 import { authenticateToken, AuthRequest } from "./auth";
 import crypto from "crypto";
 
@@ -114,8 +114,16 @@ router.get("/captains/matching", authenticateToken, async (req: AuthRequest, res
       return;
     }
 
+    const cleanRouteId = routeId.trim();
+    const withPrefix = cleanRouteId.startsWith("route-") ? cleanRouteId : `route-${cleanRouteId}`;
+    const withoutPrefix = cleanRouteId.replace(/^route-/, "");
+
     const route = await db.query.routesTable.findFirst({
-      where: eq(routesTable.id, routeId),
+      where: or(
+        eq(routesTable.id, cleanRouteId),
+        eq(routesTable.id, withPrefix),
+        eq(routesTable.id, withoutPrefix)
+      ),
     });
 
     if (!route) {

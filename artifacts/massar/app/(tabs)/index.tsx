@@ -57,7 +57,7 @@ export default function HomeScreen() {
     };
   }, [socket]);
 
-  const { data: rides, isLoading } = useSearchMatchingCaptains({ routeId: 'amman-jerash', pickupLat: 32, pickupLng: 35, destLat: 32.1, destLng: 35.1, seats: 1 });
+  const { data: rides, isLoading } = useSearchMatchingCaptains({ routeId: 'route-amman-jerash', pickupLat: 32, pickupLng: 35, destLat: 32.1, destLng: 35.1, seats: 1 });
   const bookRideMutation = useCreatePassengerRideRequest();
 
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom;
@@ -68,7 +68,7 @@ export default function HomeScreen() {
       const booking = await bookRideMutation.mutateAsync({
         data: {
           captainId: selectedRide.captainId,
-          routeId: 'amman-jerash',
+          routeId: 'route-amman-jerash',
           pickupLat: 32,
           pickupLng: 35,
           destLat: 32.1,
@@ -128,14 +128,14 @@ export default function HomeScreen() {
   // Confirmation screen overlay
   if (selectedRide) {
     const isHourly = false;
-    const totalFare = selectedRide.estimatedFare;
+    const totalFare = selectedRide.estimatedFare * seatsToBook;
     
     return (
       <View style={styles.screen}>
         <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: bottomInset + 100 }]}>
-          <View style={styles.topBar}>
+          <View style={[styles.topBar, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
             <Pressable onPress={() => { setSelectedRide(null); setSeatsToBook(1); }} style={styles.iconButton}>
-              <Feather name="arrow-left" size={21} color={colors.ink} />
+              <Feather name={isRTL ? "arrow-right" : "arrow-left"} size={21} color={colors.ink} />
             </Pressable>
             <Text style={styles.topBarTitle}>{copy.bookTitle}</Text>
             <View style={{ width: 40 }} />

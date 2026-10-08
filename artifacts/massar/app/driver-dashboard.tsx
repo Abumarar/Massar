@@ -32,6 +32,20 @@ export default function DriverDashboardScreen() {
   const [rentalHours, setRentalHours] = useState('4');
 
   useEffect(() => {
+    if (user && user.role !== 'captain') {
+      Alert.alert(
+        isRTL ? 'حساب راكب' : 'Passenger Account',
+        isRTL
+          ? 'أنت مسجل كراكب. للوصول إلى لوحة تحكم الكابتن، يرجى التسجيل ككابتن.'
+          : 'You are signed in as a passenger. To access driver mode, please register as a captain.',
+        [
+          { text: isRTL ? 'الرجوع' : 'Go Back', onPress: () => router.replace('/(tabs)' as any) }
+        ]
+      );
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (!socket) return;
     
     const handleRideRequested = () => {
@@ -44,7 +58,10 @@ export default function DriverDashboardScreen() {
     };
   }, [socket]);
 
-  const { data: rides, isLoading, refetch } = useListCaptainRideRequests();
+  const { data: rides, isLoading, refetch } = useListCaptainRideRequests(
+    undefined,
+    { query: { enabled: user?.role === 'captain' } as any }
+  );
   const updateStatusMutation = useUpdateCaptainStatus();
 
   const handleCreateRide = async () => {

@@ -4,11 +4,13 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useColors } from '@/hooks/useColors';
+import { useLanguage } from '@/context/LanguageContext';
 import { useCreatePassengerRideRequest } from '@workspace/api-client-react';
 
 export default function RequestAirportScreen() {
   const colors = useColors();
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const bookRideMutation = useCreatePassengerRideRequest();
 
@@ -17,7 +19,7 @@ export default function RequestAirportScreen() {
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission to access location was denied', 'Location is required to request a trip.');
+        Alert.alert(t('locationPermissionDenied'), t('locationRequired'));
         setIsSubmitting(false);
         return;
       }
@@ -34,11 +36,11 @@ export default function RequestAirportScreen() {
           seats: 1,
         }
       });
-      Alert.alert('Success', 'Airport trip requested successfully. An admin will assign a captain shortly.', [
-        { text: 'OK', onPress: () => router.back() }
+      Alert.alert(t('success'), t('airportSuccess'), [
+        { text: isRTL ? 'حسناً' : 'OK', onPress: () => router.back() }
       ]);
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not request trip');
+      Alert.alert(t('error'), e.message || (isRTL ? 'تعذر طلب الرحلة' : 'Could not request trip'));
     } finally {
       setIsSubmitting(false);
     }
@@ -46,24 +48,24 @@ export default function RequestAirportScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
+      <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.ink} />
+          <Feather name={isRTL ? 'arrow-right' : 'arrow-left'} size={24} color={colors.ink} />
         </Pressable>
-        <Text style={[styles.title, { color: colors.ink }]}>Request Airport Trip</Text>
+        <Text style={[styles.title, { color: colors.ink }]}>{t('requestAirportTrip')}</Text>
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Feather name={"plane" as any} size={48} color={colors.gold} style={{ alignSelf: 'center', marginBottom: 20 }} />
+        <Feather name={"send" as any} size={48} color={colors.gold} style={{ alignSelf: 'center', marginBottom: 20 }} />
         <Text style={[styles.infoText, { color: colors.ink }]}>
-          Need a ride to the airport?
+          {t('needAirportRide')}
         </Text>
         <Text style={[styles.subInfoText, { color: colors.mutedForeground }]}>
-          Our admins will find the nearest available captain for you. The price is fixed at 20 JOD.
+          {t('airportTripSubtitle')}
         </Text>
         
-        <View style={[styles.priceRow, { borderColor: colors.border }]}>
-          <Text style={[styles.priceLabel, { color: colors.ink }]}>Fixed Price:</Text>
+        <View style={[styles.priceRow, { borderColor: colors.border, flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+          <Text style={[styles.priceLabel, { color: colors.ink }]}>{t('fixedPrice')}</Text>
           <Text style={[styles.priceValue, { color: colors.gold }]}>20 JOD</Text>
         </View>
 
@@ -75,7 +77,7 @@ export default function RequestAirportScreen() {
           {isSubmitting ? (
             <ActivityIndicator color={colors.primaryForeground} />
           ) : (
-            <Text style={[styles.buttonText, { color: colors.primaryForeground }]}>Confirm Request</Text>
+            <Text style={[styles.buttonText, { color: colors.primaryForeground }]}>{t('confirmAirportRequest')}</Text>
           )}
         </Pressable>
       </View>
@@ -85,13 +87,13 @@ export default function RequestAirportScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 40, marginTop: 40 },
-  backButton: { padding: 10, marginRight: 10 },
-  title: { fontSize: 24, fontWeight: '800' },
+  header: { alignItems: 'center', marginBottom: 40, marginTop: 40 },
+  backButton: { padding: 10, marginHorizontal: 10 },
+  title: { fontSize: 22, fontWeight: '800' },
   card: { padding: 24, borderRadius: 20, borderWidth: 1 },
   infoText: { fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 12 },
   subInfoText: { fontSize: 14, textAlign: 'center', marginBottom: 24, lineHeight: 22 },
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30, paddingVertical: 16, borderTopWidth: 1, borderBottomWidth: 1 },
+  priceRow: { justifyContent: 'space-between', alignItems: 'center', marginBottom: 30, paddingVertical: 16, borderTopWidth: 1, borderBottomWidth: 1 },
   priceLabel: { fontSize: 18, fontWeight: '600' },
   priceValue: { fontSize: 24, fontWeight: '800' },
   button: { height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },

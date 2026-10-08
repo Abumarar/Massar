@@ -30,7 +30,7 @@ export const validateRequest = (schemas: { body?: any; query?: any; params?: any
       if (error instanceof ZodError || error.name === "ZodError") {
         res.status(400).json({
           error: "Validation error",
-          details: error.errors,
+          details: error.issues ?? error.errors ?? [error.message],
         });
         return;
       }

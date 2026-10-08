@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -65,7 +66,7 @@ export default function RequestRideScreen() {
     }
 
     try {
-      await createMutation.mutateAsync({
+      const res = await createMutation.mutateAsync({
         data: {
           routeId: selectedRoute.id,
           // Default pickup/dest to route origin/destination centroids
@@ -78,6 +79,22 @@ export default function RequestRideScreen() {
           type: 'standard',
         },
       });
+
+      try {
+        const saved = await AsyncStorage.getItem('@massar/trips');
+        const list = saved ? JSON.parse(saved) : [];
+        list.unshift({
+          id: (res as any)?.id || `req-${Date.now()}`,
+          captain: isRTL ? 'كابتن مسار' : 'Massar Captain',
+          vehicle: isRTL ? 'مركبة مسار' : 'Massar Vehicle',
+          route: selectedRoute.name,
+          seats,
+          fare: selectedRoute.baseFare * seats,
+          status: 'requested',
+          createdAt: new Date().toISOString(),
+        });
+        await AsyncStorage.setItem('@massar/trips', JSON.stringify(list));
+      } catch {}
 
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
@@ -104,9 +121,9 @@ export default function RequestRideScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16, flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Feather name="arrow-left" size={22} color={colors.ink} />
+          <Feather name={isRTL ? "arrow-right" : "arrow-left"} size={22} color={colors.ink} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.ink }]}>
           {isRTL ? 'طلب رحلة' : 'Request a Ride'}
