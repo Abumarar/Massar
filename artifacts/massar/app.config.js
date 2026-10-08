@@ -10,6 +10,9 @@ module.exports = {
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.massar.driver",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
       "config": {
         "googleMapsApiKey": process.env.GOOGLE_MAPS_IOS_API_KEY
       }
