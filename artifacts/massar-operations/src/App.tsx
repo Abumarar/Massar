@@ -7,6 +7,7 @@ import {
   useListAdminCaptains,
   useUpdateAdminCaptainStatus,
   useListAdminRideRequests,
+  customFetch,
 } from '@workspace/api-client-react';
 import type { RideRequest, Route, AdminCaptain, AdminCaptainStatus } from '@workspace/api-client-react';
 
@@ -266,14 +267,59 @@ function RideRequestsPanel({
   isLoading: boolean;
   refetch: () => void;
 }) {
+  const queryClient = useQueryClient();
+  const captainsQuery = useListAdminCaptains();
   const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [assignModal, setAssignModal] = useState<{ ride: RideRequest } | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const handleAssignCaptain = async (captainId: string) => {
+    if (!assignModal) return;
+    setActionLoading(true);
+    try {
+      await customFetch(`/api/admin/ride-requests/${assignModal.ride.id}/assign`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ captainId }),
+      });
+      setAssignModal(null);
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/ride-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/captain/ride-requests'] });
+    } catch (err: any) {
+      alert(err?.message || 'فشل تعيين الكابتن');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (rideId: string, status: string) => {
+    try {
+      await customFetch(`/api/admin/ride-requests/${rideId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/ride-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/captain/ride-requests'] });
+    } catch (err: any) {
+      alert(err?.message || 'فشل تحديث حالة الرحلة');
+    }
+  };
 
   const filtered = useMemo(() => {
     if (!data) return [];
     return data.filter(r => {
       const matchStatus = statusFilter === 'all' || r.status === statusFilter;
-      const matchSearch = !search || r.id.includes(search) || r.routeId?.includes(search) || r.passengerId?.includes(search);
+      const term = search.toLowerCase();
+      const matchSearch = !term ||
+        r.id.toLowerCase().includes(term) ||
+        r.routeId?.toLowerCase().includes(term) ||
+        r.passengerId?.toLowerCase().includes(term) ||
+        r.passenger?.fullName?.toLowerCase().includes(term) ||
+        (r as any).captain?.fullName?.toLowerCase().includes(term);
       return matchStatus && matchSearch;
     });
   }, [data, statusFilter, search]);
@@ -299,10 +345,10 @@ function RideRequestsPanel({
         <div className="flex items-center gap-2 flex-wrap">
           <input
             type="search"
-            placeholder="بحث برقم الطلب / المسار / الراكب…"
+            placeholder="بحث برقم الطلب / المسار / الراكب / الكابتن…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="text-sm px-3 py-1.5 rounded-lg bg-muted border border-[hsl(var(--border))] outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] placeholder:text-muted-foreground w-56"
+            className="text-sm px-3 py-1.5 rounded-lg bg-muted border border-[hsl(var(--border))] outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] placeholder:text-muted-foreground w-64"
           />
           <select
             value={statusFilter}
@@ -360,24 +406,26 @@ function RideRequestsPanel({
             <tr className="border-b border-[hsl(var(--border))] bg-muted/40">
               <th className="text-right px-6 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">رقم الطلب</th>
               <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">الراكب</th>
+              <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">الكابتن</th>
               <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">المسار</th>
               <th className="text-center px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">المقاعد</th>
-              <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">الأجرة المقدرة</th>
+              <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">الأجرة</th>
               <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">الحالة</th>
               <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">وقت الطلب</th>
+              <th className="text-right px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">الإجراءات</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[hsl(var(--border))]">
             {isLoading && Array.from({ length: 5 }).map((_, i) => (
               <tr key={i}>
-                <td className="px-6 py-3" colSpan={7}>
+                <td className="px-6 py-3" colSpan={9}>
                   <Skeleton className="h-5 w-full" />
                 </td>
               </tr>
             ))}
             {!isLoading && filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                <td colSpan={9} className="px-6 py-12 text-center text-muted-foreground">
                   <div className="flex flex-col items-center gap-2">
                     <IconActivity className="w-8 h-8 opacity-30" />
                     <p className="font-semibold text-sm">لا توجد طلبات رحلات مطابقة</p>
@@ -404,7 +452,23 @@ function RideRequestsPanel({
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <span className="text-xs font-medium">{r.routeId ?? '—'}</span>
+                  {(r as any).captain?.fullName ? (
+                    <div>
+                      <p className="font-medium text-foreground">{(r as any).captain.fullName}</p>
+                      <p className="text-xs text-muted-foreground ops-mono">{(r as any).captain.phone} • {(r as any).captain.vehiclePlate}</p>
+                    </div>
+                  ) : r.matchedCaptainId ? (
+                    <span className="text-xs text-muted-foreground ops-mono">{r.matchedCaptainId.slice(0, 8)}…</span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                      بانتظار كابتن
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <span className="text-xs font-medium">
+                    {(r as any).routeName || (r as any).customSearchText || (r.routeId ? r.routeId.replace(/^route-/, '').replace(/-/g, ' ⇄ ') : 'رحلة خاصة')}
+                  </span>
                 </td>
                 <td className="px-4 py-3 text-center">
                   <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-secondary text-secondary-foreground text-xs font-bold">
@@ -420,18 +484,139 @@ function RideRequestsPanel({
                 <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                   {formatDate(r.createdAt)}
                 </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {(!r.matchedCaptainId || ['requested', 'pending', 'searching'].includes(r.status)) && (
+                      <button
+                        onClick={() => setAssignModal({ ride: r })}
+                        className="px-2.5 py-1 rounded-md text-xs font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all cursor-pointer shadow-sm"
+                      >
+                        تعيين كابتن
+                      </button>
+                    )}
+                    {['accepted', 'captain_arriving'].includes(r.status) && (
+                      <button
+                        onClick={() => handleUpdateStatus(r.id, 'in_progress')}
+                        className="px-2.5 py-1 rounded-md text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-all cursor-pointer shadow-sm"
+                      >
+                        بدء
+                      </button>
+                    )}
+                    {['in_progress', 'picked_up'].includes(r.status) && (
+                      <button
+                        onClick={() => handleUpdateStatus(r.id, 'completed')}
+                        className="px-2.5 py-1 rounded-md text-xs font-bold bg-green-600 text-white hover:bg-green-700 transition-all cursor-pointer shadow-sm"
+                      >
+                        إتمام
+                      </button>
+                    )}
+                    {!['completed', 'cancelled', 'rejected'].includes(r.status) && (
+                      <button
+                        onClick={() => handleUpdateStatus(r.id, 'cancelled')}
+                        className="px-2 py-1 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
+                      >
+                        إلغاء
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Assign Captain Modal */}
+      {assignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setAssignModal(null)}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div
+            className="relative ops-panel rounded-2xl p-6 w-full max-w-lg shadow-2xl ops-fade-in text-right"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-[hsl(var(--border))] mb-4">
+              <button onClick={() => setAssignModal(null)} className="p-1 rounded-lg hover:bg-muted text-muted-foreground">
+                <IconX className="w-5 h-5" />
+              </button>
+              <div>
+                <h3 className="text-base font-bold">تعيين كابتن للطلب</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">طلب رقم #{assignModal.ride.id.slice(0, 8)}</p>
+              </div>
+            </div>
+
+            <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+              {!captainsQuery.data || captainsQuery.data.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  لا يوجد كباتن متاحون حالياً
+                </div>
+              ) : (
+                captainsQuery.data.map(c => (
+                  <div
+                    key={c.id}
+                    className="p-3 rounded-xl bg-muted/50 border border-[hsl(var(--border))] hover:bg-muted transition-all flex items-center justify-between gap-3"
+                  >
+                    <button
+                      onClick={() => handleAssignCaptain(c.id)}
+                      disabled={actionLoading}
+                      className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold text-xs hover:opacity-90 disabled:opacity-50 cursor-pointer shadow-sm"
+                    >
+                      {actionLoading ? 'جاري التعيين...' : 'اختيار وتعيين'}
+                    </button>
+                    <div className="text-right">
+                      <p className="font-bold text-sm text-foreground">{c.user?.fullName || 'كابتن'}</p>
+                      <p className="text-xs text-muted-foreground ops-mono">
+                        {c.user?.phone} • {c.vehicle?.makeModel} ({c.vehicle?.plate})
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── Routes Panel ─────────────────────────────────────────────────────────────
 function RoutesPanel() {
+  const queryClient = useQueryClient();
   const query = useListRoutes();
+  const [addModal, setAddModal] = useState(false);
+  const [name, setName] = useState('');
+  const [origin, setOrigin] = useState('');
+  const [destination, setDestination] = useState('');
+  const [baseFare, setBaseFare] = useState('3.0');
+  const [loading, setLoading] = useState(false);
+
+  const handleCreateRoute = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !origin.trim() || !destination.trim()) return;
+    setLoading(true);
+    try {
+      await customFetch('/api/routes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          origin: origin.trim(),
+          destination: destination.trim(),
+          baseFare: parseFloat(baseFare) || 2.5,
+        }),
+      });
+      setAddModal(false);
+      setName('');
+      setOrigin('');
+      setDestination('');
+      query.refetch();
+      queryClient.invalidateQueries({ queryKey: ['/api/routes'] });
+    } catch (err: any) {
+      alert(err?.message || 'فشل إضافة المسار');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="ops-panel rounded-2xl overflow-hidden">
@@ -442,13 +627,21 @@ function RoutesPanel() {
             {query.data ? `${query.data.length} مسار نشط` : 'جاري التحميل…'}
           </p>
         </div>
-        <button
-          onClick={() => query.refetch()}
-          className="p-1.5 rounded-lg bg-muted border border-[hsl(var(--border))] hover:bg-accent hover:text-accent-foreground transition-colors"
-          title="تحديث المسارات"
-        >
-          <IconRefresh className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAddModal(true)}
+            className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
+          >
+            + إضافة مسار جديد
+          </button>
+          <button
+            onClick={() => query.refetch()}
+            className="p-1.5 rounded-lg bg-muted border border-[hsl(var(--border))] hover:bg-accent hover:text-accent-foreground transition-colors"
+            title="تحديث المسارات"
+          >
+            <IconRefresh className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <div className="divide-y divide-[hsl(var(--border))]">
@@ -491,6 +684,93 @@ function RoutesPanel() {
           </div>
         )}
       </div>
+
+      {/* Add Route Modal */}
+      {addModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setAddModal(false)}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div
+            className="relative ops-panel rounded-2xl p-6 w-full max-w-md shadow-2xl ops-fade-in text-right"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-[hsl(var(--border))] mb-4">
+              <button onClick={() => setAddModal(false)} className="p-1 rounded-lg hover:bg-muted text-muted-foreground">
+                <IconX className="w-5 h-5" />
+              </button>
+              <h3 className="text-base font-bold">إضافة مسار بين المحافظات</h3>
+            </div>
+
+            <form onSubmit={handleCreateRoute} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">اسم المسار</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="مثال: عمان ⇄ العقبة"
+                  className="w-full text-sm px-3 py-2 rounded-lg bg-muted border border-[hsl(var(--border))] outline-none focus:ring-2 focus:ring-[hsl(var(--ring))]"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">نقطة الانطلاق</label>
+                  <input
+                    type="text"
+                    value={origin}
+                    onChange={e => setOrigin(e.target.value)}
+                    placeholder="مثال: عمان"
+                    className="w-full text-sm px-3 py-2 rounded-lg bg-muted border border-[hsl(var(--border))] outline-none focus:ring-2 focus:ring-[hsl(var(--ring))]"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">الوجهة</label>
+                  <input
+                    type="text"
+                    value={destination}
+                    onChange={e => setDestination(e.target.value)}
+                    placeholder="مثال: العقبة"
+                    className="w-full text-sm px-3 py-2 rounded-lg bg-muted border border-[hsl(var(--border))] outline-none focus:ring-2 focus:ring-[hsl(var(--ring))]"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">سعر المقعد الافتراضي (دينار)</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  value={baseFare}
+                  onChange={e => setBaseFare(e.target.value)}
+                  placeholder="3.0"
+                  className="w-full text-sm px-3 py-2 rounded-lg bg-muted border border-[hsl(var(--border))] outline-none focus:ring-2 focus:ring-[hsl(var(--ring))]"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setAddModal(false)}
+                  className="px-4 py-2 text-sm rounded-lg bg-muted border border-[hsl(var(--border))] hover:bg-secondary transition-colors"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground font-bold hover:opacity-90 disabled:opacity-50 transition-opacity"
+                >
+                  {loading ? 'جاري الحفظ…' : 'إضافة المسار'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1035,15 +1315,14 @@ interface AdminUser {
 }
 
 function AdminLogin({ onLogin }: { onLogin: (user: AdminUser) => void }) {
-  const [username, setUsername] = useState('abumatar');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('0799999999');
+  const [password, setPassword] = useState('Admin1234!');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const performLogin = async (phoneToUse: string, passwordToUse: string) => {
     setError(null);
-    if (!username.trim() || !password.trim()) {
+    if (!phoneToUse.trim() || !passwordToUse.trim()) {
       setError('يرجى إدخال اسم المستخدم وكلمة المرور');
       return;
     }
@@ -1054,7 +1333,7 @@ function AdminLogin({ onLogin }: { onLogin: (user: AdminUser) => void }) {
       const res = await fetch(`${baseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: username.trim(), password }),
+        body: JSON.stringify({ phone: phoneToUse.trim(), password: passwordToUse }),
       });
 
       const data = await res.json();
@@ -1075,6 +1354,11 @@ function AdminLogin({ onLogin }: { onLogin: (user: AdminUser) => void }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await performLogin(username, password);
   };
 
   return (
@@ -1115,7 +1399,7 @@ function AdminLogin({ onLogin }: { onLogin: (user: AdminUser) => void }) {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="abumatar"
+              placeholder="0799999999 / admin"
               className="w-full px-4 py-3 rounded-xl bg-muted/60 border border-[hsl(var(--border))] outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] text-sm font-medium transition-all"
               required
               autoFocus
@@ -1135,6 +1419,19 @@ function AdminLogin({ onLogin }: { onLogin: (user: AdminUser) => void }) {
               required
             />
           </div>
+
+          <div className="p-2.5 rounded-xl bg-muted/40 border border-[hsl(var(--border))] text-center text-xs text-muted-foreground">
+            حساب الأدمن: <strong className="text-foreground">0799999999</strong> (أو <strong className="text-foreground">admin</strong>) · كلمة المرور: <strong className="text-foreground">Admin1234!</strong>
+          </div>
+
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => performLogin('0799999999', 'Admin1234!')}
+            className="w-full py-2.5 px-4 rounded-xl bg-accent/15 text-accent border border-accent/30 font-bold text-xs hover:bg-accent/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            ⚡ دخول سريع كمسؤول (One-Click Admin Login)
+          </button>
 
           <button
             type="submit"

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, RefreshControl, Modal, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
-import { useListAdminRideRequests } from '@workspace/api-client-react';
+import { useListAdminRideRequests, useListAdminCaptains, customFetch } from '@workspace/api-client-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function AdminDashboardScreen() {
@@ -33,6 +33,12 @@ export default function AdminDashboardScreen() {
     query: { enabled: user?.role === 'admin' } as any,
   });
 
+  const { data: captainsData } = useListAdminCaptains({
+    query: { enabled: user?.role === 'admin' } as any,
+  });
+
+  const [assigningRequestId, setAssigningRequestId] = useState<string | null>(null);
+
   const allRequests = Array.isArray(requests) ? requests : [];
 
   const filteredRequests = allRequests.filter((r: any) => {
@@ -41,12 +47,36 @@ export default function AdminDashboardScreen() {
   });
 
   const handleAssignCaptain = (requestId: string) => {
-    Alert.alert(
-      isRTL ? 'تعيين كابتن' : 'Assign Captain',
-      isRTL
-        ? `سيتم فتح نافذة اختيار كابتن متاح للطلب رقم: ${requestId.slice(0, 8)}...`
-        : `Select an available captain for request: ${requestId.slice(0, 8)}...`
-    );
+    setAssigningRequestId(requestId);
+  };
+
+  const handleConfirmAssign = async (captainId: string) => {
+    if (!assigningRequestId) return;
+    try {
+      await customFetch(`/api/admin/ride-requests/${assigningRequestId}/assign`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ captainId }),
+      });
+      setAssigningRequestId(null);
+      refetch();
+      Alert.alert(isRTL ? 'نجاح' : 'Success', isRTL ? 'تم تعيين الكابتن وقبول الطلب بنجاح' : 'Captain assigned successfully');
+    } catch (err: any) {
+      Alert.alert(isRTL ? 'خطأ' : 'Error', err?.message || 'Failed to assign captain');
+    }
+  };
+
+  const handleUpdateStatus = async (requestId: string, status: string) => {
+    try {
+      await customFetch(`/api/admin/ride-requests/${requestId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      refetch();
+    } catch (err: any) {
+      Alert.alert(isRTL ? 'خطأ' : 'Error', err?.message || 'Failed to update status');
+    }
   };
 
   const getBadgeColor = (type?: string) => {
@@ -207,6 +237,24 @@ export default function AdminDashboardScreen() {
                   </View>
 
                   {/* Seats & Fare */}
+                  {/* Captain Info if matched */}
+                  {req.captain?.fullName && (
+                    <View style={styles.detailRow}>
+                      <Text style={[styles.detailLabel, { color: colors.mutedForeground }]}>
+                        {isRTL ? 'الكابتن:' : 'Captain:'}
+                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.detailValue, { color: colors.ink, fontWeight: '700' }]}>
+                          {req.captain.fullName}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 1 }}>
+                          {req.captain.phone} • {req.captain.vehicleMakeModel || 'مركبة معتمدة'} ({req.captain.vehiclePlate || '—'})
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Seats & Fare */}
                   <View style={styles.detailRow}>
                     <Text style={[styles.detailLabel, { color: colors.mutedForeground }]}>
                       {isRTL ? 'المقاعد والسعر:' : 'Seats & Fare:'}
@@ -227,21 +275,136 @@ export default function AdminDashboardScreen() {
                   </View>
                 </View>
 
-                {/* Assign Captain button */}
-                <Pressable
-                  style={[styles.assignButton, { backgroundColor: colors.gold }]}
-                  onPress={() => handleAssignCaptain(req.id)}
-                >
-                  <Feather name="user-plus" size={16} color={colors.primaryForeground} />
-                  <Text style={[styles.assignButtonText, { color: colors.primaryForeground }]}>
-                    {isRTL ? 'تعيين كابتن' : 'Assign Captain'}
-                  </Text>
-                </Pressable>
+                {/* Action Buttons based on status */}
+                <View style={{ gap: 8, marginTop: 4 }}>
+                  {(!req.matchedCaptainId || req.status === 'requested' || req.status === 'searching') && (
+                    <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 8 }}>
+                      <Pressable
+                        style={[styles.assignButton, { flex: 1, backgroundColor: colors.gold }]}
+                        onPress={() => handleAssignCaptain(req.id)}
+                      >
+                        <Feather name="user-plus" size={16} color={colors.primaryForeground} />
+                        <Text style={[styles.assignButtonText, { color: colors.primaryForeground }]}>
+                          {isRTL ? 'تعيين كابتن' : 'Assign Captain'}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.assignButton, { paddingHorizontal: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}
+                        onPress={() => handleUpdateStatus(req.id, 'cancelled')}
+                      >
+                        <Text style={[styles.assignButtonText, { color: colors.destructive }]}>
+                          {isRTL ? 'إلغاء' : 'Cancel'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  )}
+
+                  {req.status === 'accepted' && (
+                    <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 8 }}>
+                      <Pressable
+                        style={[styles.assignButton, { flex: 1, backgroundColor: colors.petrol }]}
+                        onPress={() => handleUpdateStatus(req.id, 'in_progress')}
+                      >
+                        <Feather name="play" size={16} color="#FFFFFF" />
+                        <Text style={[styles.assignButtonText, { color: '#FFFFFF' }]}>
+                          {isRTL ? 'بدء الرحلة' : 'Start Trip'}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.assignButton, { flex: 1, backgroundColor: colors.success }]}
+                        onPress={() => handleUpdateStatus(req.id, 'completed')}
+                      >
+                        <Feather name="check" size={16} color="#FFFFFF" />
+                        <Text style={[styles.assignButtonText, { color: '#FFFFFF' }]}>
+                          {isRTL ? 'إتمام الرحلة' : 'Complete'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  )}
+
+                  {req.status === 'in_progress' && (
+                    <Pressable
+                      style={[styles.assignButton, { backgroundColor: colors.success }]}
+                      onPress={() => handleUpdateStatus(req.id, 'completed')}
+                    >
+                      <Feather name="check-circle" size={16} color="#FFFFFF" />
+                      <Text style={[styles.assignButtonText, { color: '#FFFFFF' }]}>
+                        {isRTL ? 'إتمام الرحلة بنجاح' : 'Complete Trip'}
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
               </View>
             );
           })
         )}
       </ScrollView>
+
+      {/* Captain Selection Modal */}
+      <Modal
+        visible={!!assigningRequestId}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAssigningRequestId(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%', padding: 20 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: colors.ink }}>
+                {isRTL ? 'اختر كابتن للتعيين' : 'Select Captain to Assign'}
+              </Text>
+              <Pressable onPress={() => setAssigningRequestId(null)} style={{ padding: 6 }}>
+                <Feather name="x" size={20} color={colors.ink} />
+              </Pressable>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {!captainsData || captainsData.length === 0 ? (
+                <Text style={{ textAlign: 'center', color: colors.mutedForeground, paddingVertical: 24 }}>
+                  {isRTL ? 'لا يوجد كباتن مسجلون حالياً' : 'No captains available'}
+                </Text>
+              ) : (
+                captainsData.map((c: any) => (
+                  <TouchableOpacity
+                    key={c.id}
+                    onPress={() => handleConfirmAssign(c.id)}
+                    style={{
+                      flexDirection: isRTL ? 'row-reverse' : 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: 14,
+                      borderRadius: 14,
+                      backgroundColor: colors.card,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.goldSoft, alignItems: 'center', justifyContent: 'center' }}>
+                        <Feather name="user" size={18} color={colors.gold} />
+                      </View>
+                      <View>
+                        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>
+                          {c.user?.fullName || 'كابتن مسار'}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                          {c.user?.phone || '—'} • {c.vehicle?.makeModel || 'مركبة'} ({c.vehicle?.plate || 'لوحة'})
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: c.status === 'approved' ? '#DCFCE7' : '#FEF3C7' }}>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: c.status === 'approved' ? '#166534' : '#92400E' }}>
+                        {c.status === 'approved' ? (isRTL ? 'معتمد' : 'Approved') : c.status}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

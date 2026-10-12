@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSetupCaptainProfile } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 
 type Step = 'intro' | 'profile' | 'documents' | 'submitted';
 
@@ -43,12 +44,13 @@ export default function DriverOnboardingScreen() {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { isRTL } = useLanguage();
+  const { user, refreshUser } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const submitApplication = useSetupCaptainProfile();
   const [step, setStep] = useState<Step>('intro');
-  const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [fullName, setFullName] = useState(user?.fullName || '');
+  const [phone, setPhone] = useState(user?.phone || '');
   const [nationalIdLast4, setNationalIdLast4] = useState('');
   const [makeModel, setMakeModel] = useState('');
   const [color, setColor] = useState('');
@@ -163,6 +165,7 @@ export default function DriverOnboardingScreen() {
     };
     try {
       await submitApplication.mutateAsync({ data: payload });
+      await refreshUser();
       setStep('submitted');
     } catch {
       setError(arabic ? 'تعذر إرسال الطلب. تحقق من الاتصال وحاول مرة أخرى.' : 'We could not submit your application. Check your connection and try again.');
@@ -176,7 +179,21 @@ export default function DriverOnboardingScreen() {
           <View style={styles.successIcon}><Feather name="check" size={30} color={colors.primaryForeground} /></View>
           <Text style={styles.title}>{copy.submittedTitle}</Text>
           <Text style={styles.body}>{copy.submittedDescription}</Text>
-          <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/')} style={styles.primaryButton}><Text style={styles.primaryButtonText}>{copy.done}</Text><Feather name="arrow-right" size={18} color={colors.primaryForeground} /></Pressable>
+          <Pressable 
+            onPress={() => router.replace('/driver-dashboard' as any)} 
+            style={[styles.primaryButton, { marginBottom: 12 }]}
+          >
+            <Text style={styles.primaryButtonText}>
+              {arabic ? 'لوحة تحكم الكابتن' : 'Go to Driver Dashboard'}
+            </Text>
+            <Feather name="navigation" size={18} color={colors.primaryForeground} />
+          </Pressable>
+          <Pressable 
+            onPress={() => router.replace('/(tabs)' as any)} 
+            style={[styles.secondaryButton, { marginTop: 0 }]}
+          >
+            <Text style={styles.secondaryButtonText}>{copy.done}</Text>
+          </Pressable>
         </View>
       </View>
     );
@@ -285,6 +302,8 @@ const createStyles = (colors: ReturnType<typeof useColors>) => StyleSheet.create
   formSection: { color: colors.petrol, fontSize: 11, fontWeight: '800', letterSpacing: 0.7, marginTop: 6, marginBottom: 13, textTransform: 'uppercase' },
   primaryButton: { minHeight: 54, borderRadius: 15, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 16 },
   primaryButtonText: { color: colors.primaryForeground, fontSize: 14, fontWeight: '800' },
+  secondaryButton: { minHeight: 50, borderRadius: 15, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  secondaryButtonText: { color: colors.ink, fontSize: 14, fontWeight: '700' },
   documentsList: { marginTop: 18, gap: 9 },
   documentCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 17, borderWidth: 1, borderColor: colors.border, padding: 12 },
   documentIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center', marginRight: 10 },

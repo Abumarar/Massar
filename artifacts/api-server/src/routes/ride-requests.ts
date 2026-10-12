@@ -29,7 +29,11 @@ router.post("/passenger/ride-requests", authenticateToken, isPassenger, validate
     const passengerId = req.user!.id;
 
     let estimatedFare = 0;
-    if (routeId) {
+    if (type === "airport") {
+      estimatedFare = 20 * (seats || 1);
+    } else if (type === "custom") {
+      estimatedFare = 5.0 * (seats || 1);
+    } else if (routeId) {
       const cleanRouteId = routeId.trim();
       const withPrefix = cleanRouteId.startsWith("route-") ? cleanRouteId : `route-${cleanRouteId}`;
       const withoutPrefix = cleanRouteId.replace(/^route-/, "");
@@ -42,7 +46,11 @@ router.post("/passenger/ride-requests", authenticateToken, isPassenger, validate
       });
       if (route) {
         estimatedFare = route.baseFare * seats;
+      } else {
+        estimatedFare = 2.5 * seats;
       }
+    } else {
+      estimatedFare = 2.5 * seats;
     }
 
     const requestId = crypto.randomUUID();
@@ -108,6 +116,8 @@ router.get("/passenger/ride-requests", authenticateToken, isPassenger, validateR
       matchedCaptainId: req.matchedCaptainId,
       routeId: req.routeId,
       status: req.status,
+      type: (req as any).type ?? "standard",
+      customSearchText: (req as any).customSearchText ?? null,
       pickupLat: req.pickupLat,
       pickupLng: req.pickupLng,
       destLat: req.destinationLat,
@@ -124,7 +134,17 @@ router.get("/passenger/ride-requests", authenticateToken, isPassenger, validateR
         phone: req.matchedCaptain.user?.phone || "Unknown",
         vehicleMakeModel: req.matchedCaptain.vehicle?.makeModel || "Unknown",
         vehiclePlate: req.matchedCaptain.vehicle?.plate || "Unknown",
-      } : undefined
+      } : undefined,
+      matchedCaptain: req.matchedCaptain ? {
+        user: {
+          fullName: req.matchedCaptain.user?.fullName || "Unknown",
+          phone: req.matchedCaptain.user?.phone || "Unknown",
+        },
+        vehicle: {
+          makeModel: req.matchedCaptain.vehicle?.makeModel || "Unknown",
+          plate: req.matchedCaptain.vehicle?.plate || "Unknown",
+        }
+      } : undefined,
     }));
 
     res.status(200).json(mapped);
@@ -181,25 +201,36 @@ router.get("/captain/ride-requests", authenticateToken, isCaptain, validateReque
   try {
     const userId = req.user!.id;
 
-    const captain = await db.query.captainsTable.findFirst({
+    let captain = await db.query.captainsTable.findFirst({
       where: eq(captainsTable.userId, userId),
     });
 
-    if (!captain) {
+    let requests;
+    if (captain) {
+      requests = await db.query.rideRequestsTable.findMany({
+        where: eq(rideRequestsTable.matchedCaptainId, captain.id),
+        with: {
+          passenger: true,
+          matchedCaptain: {
+            with: { user: true, vehicle: true }
+          }
+        },
+        orderBy: (requests, { desc }) => [desc(requests.createdAt)],
+      });
+    } else if (req.user?.role === "admin") {
+      requests = await db.query.rideRequestsTable.findMany({
+        with: {
+          passenger: true,
+          matchedCaptain: {
+            with: { user: true, vehicle: true }
+          }
+        },
+        orderBy: (requests, { desc }) => [desc(requests.createdAt)],
+      });
+    } else {
       res.status(404).json({ error: "Captain profile not found" });
       return;
     }
-
-    const requests = await db.query.rideRequestsTable.findMany({
-      where: eq(rideRequestsTable.matchedCaptainId, captain.id),
-      with: {
-        passenger: true,
-        matchedCaptain: {
-          with: { user: true, vehicle: true }
-        }
-      },
-      orderBy: (requests, { desc }) => [desc(requests.createdAt)],
-    });
 
     const mapped = requests.map(req => ({
       id: req.id,
@@ -207,6 +238,8 @@ router.get("/captain/ride-requests", authenticateToken, isCaptain, validateReque
       matchedCaptainId: req.matchedCaptainId,
       routeId: req.routeId,
       status: req.status,
+      type: (req as any).type ?? "standard",
+      customSearchText: (req as any).customSearchText ?? null,
       pickupLat: req.pickupLat,
       pickupLng: req.pickupLng,
       destLat: req.destinationLat,
@@ -218,12 +251,22 @@ router.get("/captain/ride-requests", authenticateToken, isCaptain, validateReque
         fullName: req.passenger?.fullName || "Unknown",
         phone: req.passenger?.phone || "Unknown",
       },
-      captain: {
-        fullName: req.matchedCaptain!.user!.fullName,
-        phone: req.matchedCaptain!.user!.phone,
-        vehicleMakeModel: req.matchedCaptain!.vehicle!.makeModel,
-        vehiclePlate: req.matchedCaptain!.vehicle!.plate,
-      }
+      captain: req.matchedCaptain ? {
+        fullName: req.matchedCaptain.user?.fullName || "Unknown",
+        phone: req.matchedCaptain.user?.phone || "Unknown",
+        vehicleMakeModel: req.matchedCaptain.vehicle?.makeModel || "Unknown",
+        vehiclePlate: req.matchedCaptain.vehicle?.plate || "Unknown",
+      } : undefined,
+      matchedCaptain: req.matchedCaptain ? {
+        user: {
+          fullName: req.matchedCaptain.user?.fullName || "Unknown",
+          phone: req.matchedCaptain.user?.phone || "Unknown",
+        },
+        vehicle: {
+          makeModel: req.matchedCaptain.vehicle?.makeModel || "Unknown",
+          plate: req.matchedCaptain.vehicle?.plate || "Unknown",
+        }
+      } : undefined,
     }));
 
     res.status(200).json(mapped);
@@ -268,8 +311,18 @@ router.put("/captain/ride-requests/:id/status", authenticateToken, isCaptain, va
       }
     });
 
-    getIO().to(updated!.passengerId).emit("ride_status_updated", updated);
-    getIO().to(captain.id).emit("ride_status_updated", updated);
+    if (updated?.passengerId) {
+      getIO().to(updated.passengerId).emit("ride_status_updated", updated);
+    }
+    if (captain?.id) {
+      getIO().to(captain.id).emit("ride_status_updated", updated);
+    }
+    if (status === "accepted") {
+      if (updated?.passengerId) {
+        getIO().to(updated.passengerId).emit("ride-accepted", updated);
+      }
+      getIO().emit("ride-accepted", updated);
+    }
 
     res.status(200).json(updated);
   } catch (error) {

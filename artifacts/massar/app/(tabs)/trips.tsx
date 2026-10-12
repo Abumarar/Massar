@@ -19,6 +19,23 @@ type StoredTrip = {
   createdAt: string;
 };
 
+const JORDAN_ROUTE_NAMES: Record<string, { ar: string; en: string }> = {
+  'route-amman-jerash': { ar: 'عمان ⇄ جرش', en: 'Amman ⇄ Jerash' },
+  'amman-jerash': { ar: 'عمان ⇄ جرش', en: 'Amman ⇄ Jerash' },
+  'route-jerash-amman': { ar: 'جرش ⇄ عمان', en: 'Jerash ⇄ Amman' },
+  'jerash-amman': { ar: 'جرش ⇄ عمان', en: 'Jerash ⇄ Amman' },
+  'route-amman-irbid': { ar: 'عمان ⇄ إربد', en: 'Amman ⇄ Irbid' },
+  'route-irbid-amman': { ar: 'إربد ⇄ عمان', en: 'Irbid ⇄ Amman' },
+  'route-amman-zarqa': { ar: 'عمان ⇄ الزرقاء', en: 'Amman ⇄ Zarqa' },
+  'route-zarqa-amman': { ar: 'الزرقاء ⇄ عمان', en: 'Zarqa ⇄ Amman' },
+  'route-amman-salt': { ar: 'عمان ⇄ السلط', en: 'Amman ⇄ Salt' },
+  'route-salt-amman': { ar: 'السلط ⇄ عمان', en: 'Salt ⇄ Amman' },
+  'route-amman-madaba': { ar: 'عمان ⇄ مأدبا', en: 'Amman ⇄ Madaba' },
+  'route-madaba-amman': { ar: 'مأدبا ⇄ عمان', en: 'Madaba ⇄ Amman' },
+  'route-amman-aqaba': { ar: 'عمان ⇄ العقبة', en: 'Amman ⇄ Aqaba' },
+  'route-aqaba-amman': { ar: 'العقبة ⇄ عمان', en: 'Aqaba ⇄ Amman' },
+};
+
 export default function TripsScreen() {
   const colors = useColors();
   const styles = createStyles(colors);
@@ -55,18 +72,24 @@ export default function TripsScreen() {
     if (Array.isArray(serverRequests)) {
       for (const req of serverRequests as any[]) {
         seenIds.add(req.id);
-        const captainName = req.matchedCaptain?.user?.fullName || (isRTL ? 'كابتن مسار' : 'Massar Captain');
-        const vehicleModel = req.matchedCaptain?.vehicle?.makeModel || (isRTL ? 'مركبة مسار' : 'Massar Vehicle');
+        const captainName = req.matchedCaptain?.user?.fullName || req.captain?.fullName || (isRTL ? 'كابتن مسار' : 'Massar Captain');
+        const vehicleModel = req.matchedCaptain?.vehicle?.makeModel || req.captain?.vehicleMakeModel || (isRTL ? 'مركبة مسار' : 'Massar Vehicle');
         let routeName = req.customSearchText;
         if (!routeName) {
           if (req.type === 'airport') {
             routeName = isRTL ? 'مطار الملكة علياء الدولي' : 'Queen Alia Int. Airport';
-          } else if (req.routeId === 'route-amman-jerash' || req.routeId === 'amman-jerash') {
-            routeName = isRTL ? 'عمان ⇄ جرش' : 'Amman ⇄ Jerash';
+          } else if (req.routeId && JORDAN_ROUTE_NAMES[req.routeId]) {
+            routeName = isRTL ? JORDAN_ROUTE_NAMES[req.routeId].ar : JORDAN_ROUTE_NAMES[req.routeId].en;
+          } else if (req.routeId) {
+            routeName = req.routeId.replace(/^route-/, '').replace(/-/g, ' ⇄ ');
           } else {
             routeName = isRTL ? 'رحلة بين المحافظات' : 'Intercity Ride';
           }
         }
+
+        const fare = (req.estimatedFare && req.estimatedFare > 0)
+          ? req.estimatedFare
+          : (req.type === 'airport' ? 20 : (req.type === 'custom' ? 5.0 : 2.5));
 
         list.push({
           id: req.id,
@@ -74,7 +97,7 @@ export default function TripsScreen() {
           vehicle: vehicleModel,
           route: routeName,
           seats: req.seatsRequested ?? 1,
-          fare: req.estimatedFare ?? (req.type === 'airport' ? 20 : 2.5),
+          fare,
           status: req.status || 'requested',
           createdAt: req.createdAt || new Date().toISOString(),
         });

@@ -44,7 +44,15 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         });
 
         activeSocket.on('connect', () => {
-          if (!isCancelled) setIsConnected(true);
+          if (!isCancelled) {
+            setIsConnected(true);
+            if (user?.id) {
+              activeSocket?.emit('join', user.id);
+            }
+            if (user?.captainProfile?.id) {
+              activeSocket?.emit('join', user.captainProfile.id);
+            }
+          }
         });
 
         activeSocket.on('disconnect', () => {

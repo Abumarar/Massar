@@ -42,18 +42,21 @@ export default function HomeScreen() {
     if (!socket) return;
     
     const handleRideAccepted = (data: any) => {
+      if (data?.status && data.status !== 'accepted' && data.status !== 'in_progress') return;
       Alert.alert(
-        (t as any)('rideAccepted') || 'Ride Accepted',
+        (t as any)('rideAccepted') || (isRTL ? 'تم قبول الرحلة' : 'Ride Accepted'),
         isRTL
           ? 'تم قبول رحلتك من قبل الكابتن!'
           : 'Your ride was accepted by a Captain!',
-        [{ text: isRTL ? 'عرض' : 'View', onPress: () => router.navigate('/(tabs)/trips') }],
+        [{ text: isRTL ? 'عرض الرحلات' : 'View Trips', onPress: () => router.navigate('/(tabs)/trips') }],
       );
     };
 
     socket.on('ride-accepted', handleRideAccepted);
+    socket.on('ride_status_updated', handleRideAccepted);
     return () => {
       socket.off('ride-accepted', handleRideAccepted);
+      socket.off('ride_status_updated', handleRideAccepted);
     };
   }, [socket]);
 
@@ -342,18 +345,27 @@ export default function HomeScreen() {
             {/* Driver info header */}
             <View style={styles.driverRow}>
               <View style={styles.driverAvatar}>
-                <Text style={styles.driverAvatarText}>{ride.captainId.slice(-2).toUpperCase()}</Text>
+                <Text style={styles.driverAvatarText}>
+                  {ride.fullName ? ride.fullName.slice(0, 2).toUpperCase() : ride.captainId.slice(-2).toUpperCase()}
+                </Text>
               </View>
               <View style={styles.driverInfo}>
-                <Text style={styles.driverName}>Driver {ride.captainId.slice(-4)}</Text>
+                <Text style={styles.driverName}>
+                  {ride.fullName || `${isRTL ? 'كابتن مسار' : 'Captain'} ${ride.captainId.slice(-4)}`}
+                </Text>
                 <View style={styles.ratingRow}>
                   <Feather name="star" size={12} color={colors.gold} />
-                  <Text style={styles.ratingText}>4.9</Text>
+                  <Text style={styles.ratingText}>{(ride.rating || 4.9).toFixed(1)}</Text>
+                  {ride.vehicleMakeModel && (
+                    <Text style={{ fontSize: 11, color: colors.mutedForeground, marginLeft: 6 }}>
+                      · {ride.vehicleMakeModel}
+                    </Text>
+                  )}
                 </View>
               </View>
               <Pressable style={styles.bookBtn} onPress={() => { setSelectedRide(ride); setSeatsToBook(1); }}>
                 <Text style={styles.bookBtnText}>{isRTL ? 'حجز' : 'Book'}</Text>
-                <Feather name="arrow-right" size={14} color={colors.primaryForeground} />
+                <Feather name={isRTL ? "arrow-left" : "arrow-right"} size={14} color={colors.primaryForeground} />
               </Pressable>
             </View>
             

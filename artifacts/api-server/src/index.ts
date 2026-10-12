@@ -4,6 +4,7 @@ import { createServer } from "http";
 import { initIO } from "./lib/socket";
 import { seedDefaultRoutesIfEmpty } from "./routes/routes";
 import { seedDefaultAdminIfMissing } from "./routes/auth";
+import { seedDefaultCaptainIfMissing } from "./routes/captains";
 
 import { env } from "./lib/env";
 
@@ -20,10 +21,11 @@ server.listen(port, async (err?: Error) => {
 
   logger.info({ port }, "Server listening");
 
-  // Ensure default routes and admin exist in DB
+  // Ensure default routes, admin, and demo captain exist in DB
   try {
     await seedDefaultRoutesIfEmpty();
     await seedDefaultAdminIfMissing();
+    await seedDefaultCaptainIfMissing();
   } catch (seedErr) {
     logger.error({ seedErr }, "Error during initial DB seeding");
   }

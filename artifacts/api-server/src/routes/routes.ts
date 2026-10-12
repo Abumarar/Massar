@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { routesTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import { authenticateToken, AuthRequest } from "./auth";
+import { isAdmin } from "../middlewares/roles";
 
 const router = Router();
 
@@ -129,6 +132,32 @@ router.get("/routes", async (req, res) => {
     res.status(200).json(routes);
   } catch (error) {
     console.error("GET /routes error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/routes", authenticateToken, isAdmin, async (req: AuthRequest, res) => {
+  try {
+    const { name, origin, destination, baseFare, pickupPoints, dropoffPoints } = req.body;
+    if (!name || !origin || !destination || baseFare == null) {
+      res.status(400).json({ error: "Missing required fields" });
+      return;
+    }
+    const id = `route-${Date.now()}`;
+    await db.insert(routesTable).values({
+      id,
+      name,
+      origin,
+      destination,
+      baseFare: Number(baseFare),
+      isActive: true,
+    });
+    const created = await db.query.routesTable.findFirst({
+      where: eq(routesTable.id, id),
+    });
+    res.status(201).json(created);
+  } catch (err) {
+    console.error("POST /routes error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });

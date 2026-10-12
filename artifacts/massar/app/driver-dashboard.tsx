@@ -5,7 +5,8 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { useListCaptainRideRequests, useUpdateCaptainStatus } from '@workspace/api-client-react';
+import * as Haptics from 'expo-haptics';
+import { useListCaptainRideRequests, useUpdateCaptainStatus, useUpdateCaptainRideRequestStatus } from '@workspace/api-client-react';
 import { JORDAN_GOVERNORATES } from '@/constants/governorates';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
@@ -32,7 +33,7 @@ export default function DriverDashboardScreen() {
   const [rentalHours, setRentalHours] = useState('4');
 
   useEffect(() => {
-    if (user && user.role !== 'captain') {
+    if (user && user.role !== 'captain' && user.role !== 'admin') {
       Alert.alert(
         isRTL ? 'حساب راكب' : 'Passenger Account',
         isRTL
@@ -60,9 +61,23 @@ export default function DriverDashboardScreen() {
 
   const { data: rides, isLoading, refetch } = useListCaptainRideRequests(
     undefined,
-    { query: { enabled: user?.role === 'captain' } as any }
+    { query: { enabled: user?.role === 'captain' || user?.role === 'admin' } as any }
   );
   const updateStatusMutation = useUpdateCaptainStatus();
+  const updateRideStatusMutation = useUpdateCaptainRideRequestStatus();
+
+  const handleUpdateRideStatus = async (rideId: string, newStatus: any) => {
+    try {
+      await updateRideStatusMutation.mutateAsync({
+        id: rideId,
+        data: { status: newStatus }
+      });
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      refetch();
+    } catch (err: any) {
+      Alert.alert(isRTL ? "خطأ" : "Error", err?.message || (isRTL ? "فشل تحديث حالة الرحلة" : "Could not update ride status"));
+    }
+  };
 
   const handleCreateRide = async () => {
     if (!driverId) return;
@@ -236,34 +251,114 @@ export default function DriverDashboardScreen() {
             <Text style={styles.emptyText}>{copy.noRides}</Text>
           </View>
         ) : (
-          rides.map(ride => (
-            <View key={ride.id} style={styles.rideCard}>
-              <View style={styles.rideTop}>
-                <View style={styles.routePill}>
-                  <Feather name={'map-pin'} size={12} color={colors.petrol} style={{ marginRight: 6 }} />
-                  <Text style={styles.routeText}>{ride.routeId}</Text>
+          rides.map((ride: any) => {
+            let routeLabel = ride.customSearchText;
+            if (!routeLabel) {
+              if (ride.type === 'airport') {
+                routeLabel = isRTL ? 'مطار الملكة علياء الدولي' : 'Queen Alia Int. Airport';
+              } else if (ride.routeId) {
+                routeLabel = ride.routeId.replace(/^route-/, '').replace(/-/g, ' ⇄ ');
+              } else {
+                routeLabel = isRTL ? 'رحلة بين المحافظات' : 'Intercity Ride';
+              }
+            }
+
+            return (
+              <View key={ride.id} style={styles.rideCard}>
+                <View style={styles.rideTop}>
+                  <View style={styles.routePill}>
+                    <Feather name={'map-pin'} size={12} color={colors.petrol} style={{ marginRight: 6 }} />
+                    <Text style={styles.routeText}>{routeLabel}</Text>
+                  </View>
+                  <View style={[styles.statusBadge, ride.status !== 'requested' && styles.statusBadgeFull]}>
+                    <Text style={[styles.statusText, ride.status !== 'requested' && styles.statusTextFull]}>
+                      {ride.status === 'requested' ? (isRTL ? 'طلب جديد' : 'New Request') :
+                       ride.status === 'accepted' ? (isRTL ? 'تم القبول' : 'Accepted') :
+                       ride.status === 'in_progress' ? (isRTL ? 'جارية' : 'In Progress') :
+                       ride.status === 'completed' ? (isRTL ? 'مكتملة' : 'Completed') :
+                       ride.status === 'rejected' ? (isRTL ? 'مرفوضة' : 'Declined') : ride.status}
+                    </Text>
+                  </View>
                 </View>
-                <View style={[styles.statusBadge, ride.status !== 'requested' && styles.statusBadgeFull]}>
-                  <Text style={[styles.statusText, ride.status !== 'requested' && styles.statusTextFull]}>
-                    {ride.status}
-                  </Text>
+
+                {ride.passenger?.fullName && (
+                  <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginVertical: 6 }}>
+                    <Feather name="user" size={14} color={colors.gold} style={isRTL ? { marginLeft: 6 } : { marginRight: 6 }} />
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.ink }}>
+                      {ride.passenger.fullName}
+                    </Text>
+                    {ride.passenger.phone && (
+                      <Text style={{ fontSize: 12, color: colors.mutedForeground, marginLeft: 6 }}>
+                        · {ride.passenger.phone}
+                      </Text>
+                    )}
+                  </View>
+                )}
+
+                <View style={styles.rideDetails}>
+                  <View style={styles.detailItem}>
+                    <Feather name="users" size={16} color={colors.mutedForeground} />
+                    <Text style={styles.detailText}>{ride.seatsRequested} {copy.seats}</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Feather name="credit-card" size={16} color={colors.mutedForeground} />
+                    <Text style={styles.detailText}>{(ride.estimatedFare || 2.5).toFixed(2)} JOD</Text>
+                  </View>
                 </View>
+
+                {ride.status === 'requested' && (
+                  <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 8, marginTop: 14 }}>
+                    <Pressable
+                      onPress={() => handleUpdateRideStatus(ride.id, 'accepted')}
+                      style={{ flex: 1, backgroundColor: colors.gold, paddingVertical: 10, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 13 }}>
+                        {isRTL ? 'قبول الطلب' : 'Accept Ride'}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => handleUpdateRideStatus(ride.id, 'rejected')}
+                      style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <Text style={{ color: colors.mutedForeground, fontWeight: '700', fontSize: 13 }}>
+                        {isRTL ? 'رفض' : 'Decline'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
+
+                {ride.status === 'accepted' && (
+                  <View style={{ marginTop: 12 }}>
+                    <Pressable
+                      onPress={() => handleUpdateRideStatus(ride.id, 'in_progress')}
+                      style={{ backgroundColor: colors.petrol, paddingVertical: 10, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 13 }}>
+                        {isRTL ? 'بدء الرحلة' : 'Start Trip'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
+
+                {ride.status === 'in_progress' && (
+                  <View style={{ marginTop: 12 }}>
+                    <Pressable
+                      onPress={() => handleUpdateRideStatus(ride.id, 'completed')}
+                      style={{ backgroundColor: colors.success, paddingVertical: 10, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 13 }}>
+                        {isRTL ? 'إتمام الرحلة بنجاح' : 'Complete Trip'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
+
+                <Text style={styles.timeText}>
+                  {new Date(ride.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
               </View>
-              <View style={styles.rideDetails}>
-                <View style={styles.detailItem}>
-                  <Feather name="users" size={16} color={colors.mutedForeground} />
-                  <Text style={styles.detailText}>{ride.seatsRequested} {copy.available}</Text>
-                </View>
-                <View style={styles.detailItem}>
-                  <Feather name="credit-card" size={16} color={colors.mutedForeground} />
-                  <Text style={styles.detailText}>{ride.estimatedFare.toFixed(2)} {copy.fare}</Text>
-                </View>
-              </View>
-              <Text style={styles.timeText}>
-                {new Date(ride.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            </View>
-          ))
+            );
+          })
         )}
       </ScrollView>
     </KeyboardAvoidingView>

@@ -9,6 +9,7 @@ type AuthContextType = {
   login: (data: LoginBody) => Promise<void>;
   register: (data: RegisterBody) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<User | undefined>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,6 +50,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadUser();
   }, []);
 
+  const refreshUser = async () => {
+    try {
+      const userData = await getMe();
+      setUser(userData);
+      queryClient.invalidateQueries();
+      return userData;
+    } catch (error) {
+      console.warn('refreshUser failed:', error);
+      return undefined;
+    }
+  };
+
   const login = async (data: LoginBody) => {
     const res = await loginMutation.mutateAsync({ data });
     await SecureStore.setItemAsync('massar_jwt', res.token);
@@ -71,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -138,20 +138,60 @@ export default function ProfileScreen() {
           </>
         )}
 
-        {user?.role === 'captain' && (
+        {user?.role !== 'captain' && (
           <Pressable
             style={styles.captainShortcut}
-            onPress={() => router.push('/driver-dashboard' as any)}
+            onPress={() => router.push('/driver' as any)}
           >
             <View style={styles.captainShortcutIcon}>
               <Feather name="navigation" size={18} color={colors.gold} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.captainShortcutTitle}>{isRTL ? 'لوحة تحكم الكابتن' : 'Captain Dashboard'}</Text>
-              <Text style={styles.captainShortcutSub}>{isRTL ? 'إدارة رحلاتك وطلبات الركاب' : 'Manage your rides and requests'}</Text>
+              <Text style={styles.captainShortcutTitle}>
+                {isRTL ? 'انضم ككابتن في مسار' : 'Become a Massar Captain'}
+              </Text>
+              <Text style={styles.captainShortcutSub}>
+                {isRTL ? 'سجل مركبتك وقدم وثائقك للانطلاق بالرحلات' : 'Register vehicle & submit compliance documents'}
+              </Text>
             </View>
             <Feather name={isRTL ? 'chevron-left' : 'chevron-right'} size={18} color={colors.gold} />
           </Pressable>
+        )}
+
+        {user?.role === 'captain' && (
+          <>
+            <Pressable
+              style={styles.captainShortcut}
+              onPress={() => router.push('/driver-dashboard' as any)}
+            >
+              <View style={styles.captainShortcutIcon}>
+                <Feather name="navigation" size={18} color={colors.gold} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.captainShortcutTitle}>{isRTL ? 'لوحة تحكم الكابتن' : 'Captain Dashboard'}</Text>
+                <Text style={styles.captainShortcutSub}>{isRTL ? 'إدارة رحلاتك وطلبات الركاب' : 'Manage your rides and requests'}</Text>
+              </View>
+              <Feather name={isRTL ? 'chevron-left' : 'chevron-right'} size={18} color={colors.gold} />
+            </Pressable>
+
+            <Pressable
+              style={[styles.captainShortcut, { marginTop: 10, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}
+              onPress={() => router.push('/driver' as any)}
+            >
+              <View style={[styles.captainShortcutIcon, { backgroundColor: colors.goldSoft }]}>
+                <Feather name="file-text" size={18} color={colors.gold} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.captainShortcutTitle}>
+                  {isRTL ? 'وثائق الكابتن والترخيص' : 'Captain Documents & Permits'}
+                </Text>
+                <Text style={styles.captainShortcutSub}>
+                  {isRTL ? 'مراجعة وتحديث وثائق المركبة والتصاريح' : 'Review & update vehicle documents'}
+                </Text>
+              </View>
+              <Feather name={isRTL ? 'chevron-left' : 'chevron-right'} size={18} color={colors.mutedForeground} />
+            </Pressable>
+          </>
         )}
 
         <View style={styles.brandCard}>

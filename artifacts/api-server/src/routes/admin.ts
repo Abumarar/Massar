@@ -4,6 +4,7 @@ import { captainsTable, usersTable, vehiclesTable, rideRequestsTable } from "@wo
 import { eq, desc } from "drizzle-orm";
 import { authenticateToken, AuthRequest } from "./auth";
 import { isAdmin } from "../middlewares/roles";
+import { getIO } from "../lib/socket";
 
 const router = Router();
 
@@ -135,7 +136,111 @@ router.get(
       console.error("GET /admin/ride-requests error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
-  },
+  }
+);
+// PUT /admin/ride-requests/:id/status — admin updates ride status
+router.put(
+  "/admin/ride-requests/:id/status",
+  authenticateToken,
+  isAdmin,
+  async (req: AuthRequest, res) => {
+    try {
+      const id = String(req.params.id);
+      const { status } = req.body;
+      const request = await db.query.rideRequestsTable.findFirst({
+        where: eq(rideRequestsTable.id, id),
+      });
+      if (!request) {
+        res.status(404).json({ error: "Request not found" });
+        return;
+      }
+      await db
+        .update(rideRequestsTable)
+        .set({ status })
+        .where(eq(rideRequestsTable.id, id));
+
+      const updated = await db.query.rideRequestsTable.findFirst({
+        where: eq(rideRequestsTable.id, id),
+        with: {
+          passenger: true,
+          matchedCaptain: { with: { user: true, vehicle: true } },
+        },
+      });
+
+      if (updated?.passengerId) {
+        try {
+          getIO().to(updated.passengerId).emit("ride_status_updated", updated);
+        } catch {}
+      }
+      if (updated?.matchedCaptainId) {
+        try {
+          getIO().to(updated.matchedCaptainId).emit("ride_status_updated", updated);
+        } catch {}
+      }
+
+      res.status(200).json(updated);
+    } catch (err) {
+      console.error("PUT /admin/ride-requests/:id/status error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+// PUT /admin/ride-requests/:id/assign — assign captain to ride request
+router.put(
+  "/admin/ride-requests/:id/assign",
+  authenticateToken,
+  isAdmin,
+  async (req: AuthRequest, res) => {
+    try {
+      const id = String(req.params.id);
+      const { captainId } = req.body;
+      const captain = await db.query.captainsTable.findFirst({
+        where: eq(captainsTable.id, captainId),
+        with: { user: true, vehicle: true },
+      });
+      if (!captain) {
+        res.status(404).json({ error: "Captain not found" });
+        return;
+      }
+
+      await db
+        .update(rideRequestsTable)
+        .set({
+          matchedCaptainId: captainId,
+          status: "accepted",
+        })
+        .where(eq(rideRequestsTable.id, id));
+
+      const updated = await db.query.rideRequestsTable.findFirst({
+        where: eq(rideRequestsTable.id, id),
+        with: {
+          passenger: true,
+          matchedCaptain: { with: { user: true, vehicle: true } },
+        },
+      });
+
+      if (updated?.passengerId) {
+        try {
+          getIO().to(updated.passengerId).emit("ride-accepted", {
+            requestId: id,
+            captain: {
+              id: captain.id,
+              fullName: captain.user?.fullName ?? "الكابتن",
+              phone: captain.user?.phone ?? "",
+              vehicle: captain.vehicle?.makeModel ?? "",
+              plate: captain.vehicle?.plate ?? "",
+            },
+          });
+        } catch {}
+      }
+
+      res.status(200).json(updated);
+    } catch (err) {
+      console.error("PUT /admin/ride-requests/:id/assign error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
 );
 
 export default router;
